@@ -1673,4 +1673,178 @@ body {
   transform: scale(1.08);
 }
 
+/* --- ADVANCED CYBERPUNK HUD DETAILS --- */
+
+/* Vector line connectors */
+.portal-connectors {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.portal-line-cyan {
+  stroke: var(--neon-cyan);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 6;
+  animation: dashLine 45s linear infinite;
+  filter: drop-shadow(0 0 3px var(--neon-cyan));
+  opacity: 0.45;
+}
+
+.portal-line-pink {
+  stroke: var(--neon-pink);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 6;
+  animation: dashLineReverse 45s linear infinite;
+  filter: drop-shadow(0 0 3px var(--neon-pink));
+  opacity: 0.45;
+}
+
+@keyframes dashLine {
+  to { stroke-dashoffset: -1000; }
+}
+
+@keyframes dashLineReverse {
+  to { stroke-dashoffset: 1000; }
+}
+
+/* Floating Thumbnail card */
+.portal-media-card {
+  position: absolute;
+  width: 100px;
+  height: 65px;
+  background: #04040c;
+  border: 1.5px solid var(--neon-cyan);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: floatNode 6s ease-in-out infinite;
+}
+
+.portal-media-card:hover {
+  border-color: var(--neon-pink);
+  box-shadow: 0 0 25px rgba(255, 0, 128, 0.55);
+  transform: scale(1.1) translateY(-6px);
+}
+
+.portal-media-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.65;
+  transition: opacity 0.3s ease;
+}
+
+.portal-media-card:hover img {
+  opacity: 0.9;
+}
+
+.portal-media-card-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-55%, -55%);
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 242, 254, 0.85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-size: 9px;
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.portal-media-title {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  background: rgba(4, 4, 12, 0.85);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-align: center;
+  padding: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Card positions */
+.m-card-1 { top: 8%; right: -20px; animation-delay: 0s; }
+.m-card-2 { bottom: 12%; left: -30px; animation-delay: 2.2s; }
+.m-card-3 { bottom: 8%; right: 40px; animation-delay: 4.4s; }
+.m-card-4 { top: 5%; left: 30px; animation-delay: 1.5s; }
+
+/* Camera lens telemetries */
+.lens-telemetry {
+  position: absolute;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--neon-cyan);
+  opacity: 0.8;
+  text-shadow: 0 0 4px var(--neon-cyan);
+  pointer-events: none;
+}
+
+.telemetry-top-left { top: 20px; left: 20px; text-align: left; }
+.telemetry-top-right { top: 20px; right: 20px; text-align: right; color: var(--neon-pink); text-shadow: 0 0 4px var(--neon-pink); }
+.telemetry-bottom-left { bottom: 20px; left: 20px; text-align: left; }
+.telemetry-bottom-right { bottom: 20px; right: 20px; text-align: right; }
+
+/* Corner Brackets */
+.portal-bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--neon-cyan);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.bracket-tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+.bracket-tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; border-color: var(--neon-pink); }
+.bracket-bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; border-color: var(--neon-pink); }
+.bracket-br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+/* Input Icons */
+.portal-input-skew {
+  display: flex;
+  align-items: center;
+}
+
+.portal-input-icon {
+  transform: skewX(12deg);
+  padding-left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 3px var(--neon-cyan));
+  opacity: 0.7;
+}
+
+.portal-input-skew:focus-within .portal-input-icon {
+  color: var(--neon-pink);
+  filter: drop-shadow(0 0 3px var(--neon-pink));
+  opacity: 0.95;
+}
+
+.portal-input-skew input {
+  padding-left: 10px !important;
+}
+
+
 
