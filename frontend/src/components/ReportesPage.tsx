@@ -86,10 +86,10 @@ const ReportesPage: React.FC = () => {
       const rangoTexto = `${new Date(fechaInicio).toLocaleDateString('es-ES')} - ${new Date(fechaFin).toLocaleDateString('es-ES')}`;
 
       const mapeoEstados: any = {
-        'POR_GRABAR': 'Por grabar 🎥',
-        'EDICION': 'En proceso de edición ✂️',
-        'TERMINADO': 'Terminado ✅',
-        'PUBLICADO': 'Publicado 🚀'
+        'POR_GRABAR': 'Por grabar',
+        'EDICION': 'En proceso de edición',
+        'TERMINADO': 'Terminado',
+        'PUBLICADO': 'Publicado'
       };
 
       const filasHTML = publicaciones.map((pub: any) => {
@@ -358,7 +358,7 @@ const ReportesPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px', textAlign: 'right' }}>
+          <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', textAlign: 'right' }}>
             <button 
               type="submit" 
               className="btn-primary" 
@@ -385,9 +385,9 @@ const ReportesPage: React.FC = () => {
         </form>
       </div>
 
-      <div style={{ maxWidth: '600px', margin: '20px auto 0', padding: '12px 16px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', display: 'flex', gap: '10px' }}>
-        <span style={{ fontSize: '18px' }}>ℹ️</span>
-        <p style={{ fontSize: '11px', color: '#1e3a8a', margin: 0, lineHeight: '1.4' }}>
+      <div className="info-banner">
+        <span className="info-banner-icon" style={{ fontWeight: 'bold', marginRight: '6px' }}>i</span>
+        <p className="info-banner-text">
           El documento PDF exportado contendrá una tabla estructurada de forma horizontal para asegurar la lectura cómoda de títulos, guiones cortos, enlaces de descarga directa de material y notas internas de producción. Es ideal para enviar por WhatsApp o correo a tus clientes para su revisión y aprobación.
         </p>
       </div>

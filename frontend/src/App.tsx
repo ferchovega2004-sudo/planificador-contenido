@@ -46,10 +46,26 @@ function App(): React.JSX.Element {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', padding: '20px 14px' }}>
-          <img src={logo} alt="Logo" className="sidebar-logo" />
+          <div className="sidebar-logo-custom" style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-pink) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '800',
+            fontSize: '14px',
+            color: '#ffffff',
+            boxShadow: '0 0 10px rgba(192, 132, 252, 0.4)',
+            fontFamily: 'Outfit, sans-serif',
+            flexShrink: 0
+          }}>
+            GD
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>AETHERNET</span>
-            <span className="sidebar-subtitle" style={{ fontSize: '8px', marginTop: '2px' }}>MEDIA PRODUCTION GATEWAY</span>
+            <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>GARA DIGITAL</span>
+            <span className="sidebar-subtitle" style={{ fontSize: '8px', marginTop: '2px' }}>PLANIFICADOR</span>
           </div>
         </div>
 
@@ -61,7 +77,7 @@ function App(): React.JSX.Element {
           <div className="user-info">
             <span className="user-name">{usuario.nombre}</span>
             <span className="user-role">
-              {usuario.rol === 'ADMIN' ? 'Administrador 👑' : 'Operativo ⚙️'}
+              {usuario.rol === 'ADMIN' ? 'Administrador' : 'Operativo'}
             </span>
           </div>
         </div>

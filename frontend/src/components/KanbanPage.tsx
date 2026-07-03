@@ -56,19 +56,19 @@ const KanbanPage: React.FC = () => {
   // Agrupar publicaciones por estado
   const columnas = {
     POR_GRABAR: {
-      titulo: 'Por grabar 🎥',
+      titulo: 'Por grabar',
       items: publicacionesFiltradas.filter((p) => p.estado === 'POR_GRABAR')
     },
     EDICION: {
-      titulo: 'En proceso de edición ✂️',
+      titulo: 'En proceso de edición',
       items: publicacionesFiltradas.filter((p) => p.estado === 'EDICION')
     },
     TERMINADO: {
-      titulo: 'Terminado ✅',
+      titulo: 'Terminado',
       items: publicacionesFiltradas.filter((p) => p.estado === 'TERMINADO')
     },
     PUBLICADO: {
-      titulo: 'Publicado 🚀',
+      titulo: 'Publicado',
       items: publicacionesFiltradas.filter((p) => p.estado === 'PUBLICADO')
     }
   };
@@ -150,7 +150,6 @@ const KanbanPage: React.FC = () => {
             <select
               value={clienteFiltrado}
               onChange={(e) => setClienteFiltrado(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
-              style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
             >
               <option value="TODOS">Todas las marcas</option>
               {clientes.map((c) => (
@@ -185,7 +184,7 @@ const KanbanPage: React.FC = () => {
               onDrop={(e) => handleDrop(e, estadoKey as any)}
             >
               <div className="kanban-column-header">
-                <h3>{col.titulo}</h3>
+                <h3 className="kanban-column-title">{col.titulo}</h3>
                 <span className="kanban-badge">{col.items.length}</span>
               </div>
               <div className="kanban-column-body">
@@ -219,8 +218,11 @@ const KanbanPage: React.FC = () => {
                             {fechaFormateada}
                           </span>
                           {pub.driveUrl && (
-                            <span className="kanban-card-link-icon" title="Tiene link a Drive">
-                              📂
+                            <span className="kanban-card-link-icon" title="Tiene link a Drive" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                              </svg>
                             </span>
                           )}
                         </div>

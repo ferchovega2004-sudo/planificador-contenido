@@ -23,7 +23,7 @@ export default function EmptyState({
   
   // Render deterministic SVG icon based on the icon prop
   const renderIcon = (): React.ReactNode => {
-    const strokeColor = '#8b6e79';
+    const strokeColor = 'var(--text-muted)';
     switch (icon) {
       case 'user':
         return (
@@ -112,8 +112,8 @@ export default function EmptyState({
               style={{
                 padding: '8px 16px',
                 fontSize: '13px',
-                borderColor: '#3b232c',
-                color: '#cbd5e1',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
                 background: 'transparent'
               }}
             >

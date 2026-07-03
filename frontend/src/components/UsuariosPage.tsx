@@ -237,7 +237,7 @@ const UsuariosPage: React.FC = () => {
               <h3>Cambiar Contraseña</h3>
               <button className="close-btn" onClick={() => setCambiarPassUser(null)}>&times;</button>
             </div>
-            <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 16px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>
               Estás asignando una nueva contraseña para <strong>{cambiarPassUser.nombre}</strong>.
             </p>
             <form onSubmit={handleCambiarPassword} className="form">

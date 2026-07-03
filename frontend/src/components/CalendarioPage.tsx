@@ -7,6 +7,7 @@ const CalendarioPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fechaReferencia, setFechaReferencia] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,35 +16,84 @@ const CalendarioPage: React.FC = () => {
   const [selectedPub, setSelectedPub] = useState<Publicacion | null>(null);
 
   // Modal de creación rápida en celda
-  const [crearCeldaInfo, setCrearCeldaInfo] = useState<{ clienteId: number; fecha: string } | null>(null);
+  const [crearCeldaInfo, setCrearCeldaInfo] = useState<{ fecha: string; clienteId?: number } | null>(null);
   const [nuevoTitulo, setNuevoTitulo] = useState('');
+  const [nuevoClienteId, setNuevoClienteId] = useState<number | ''>('');
   const [creando, setCreando] = useState(false);
 
-  // Obtener fechas de la semana de lunes a domingo para la fecha de referencia
-  const obtenerDiasSemana = (refDate: Date) => {
+  // Mapeo de días de la semana (Domingo a Sábado)
+  const diasSemanaNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  // Obtener fechas para la cuadrícula del mes (Sun to Sat)
+  const getMonthGridDates = (refDate: Date) => {
+    const year = refDate.getFullYear();
+    const month = refDate.getMonth();
+    
+    // Primer día del mes
+    const primerDia = new Date(year, month, 1);
+    // Último día del mes
+    const ultimoDia = new Date(year, month + 1, 0);
+    
+    // Cuadrícula inicia en el domingo anterior o el mismo día si es domingo
+    const primerDiaSemana = primerDia.getDay();
+    const inicioGrid = new Date(primerDia);
+    inicioGrid.setDate(primerDia.getDate() - primerDiaSemana);
+    
+    // Cuadrícula termina en el sábado posterior
+    const ultimoDiaSemana = ultimoDia.getDay();
+    const finGrid = new Date(ultimoDia);
+    finGrid.setDate(ultimoDia.getDate() + (6 - ultimoDiaSemana));
+    
+    const dias: Date[] = [];
+    const curr = new Date(inicioGrid);
+    while (curr <= finGrid) {
+      dias.push(new Date(curr));
+      curr.setDate(curr.getDate() + 1);
+    }
+    return { dias, inicioGrid, finGrid };
+  };
+
+  // Obtener fechas para la vista semanal (Sun to Sat)
+  const getWeekGridDates = (refDate: Date) => {
     const d = new Date(refDate);
     const day = d.getDay();
-    // Ajustar para que el Lunes sea el día 0, Martes 1, ..., Domingo 6
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
-    const lunes = new Date(d.setDate(diff));
+    const inicioGrid = new Date(d);
+    inicioGrid.setDate(d.getDate() - day);
     
     const dias: Date[] = [];
     for (let i = 0; i < 7; i++) {
-      const dia = new Date(lunes);
-      dia.setDate(lunes.getDate() + i);
+      const dia = new Date(inicioGrid);
+      dia.setDate(inicioGrid.getDate() + i);
       dias.push(dia);
     }
-    return dias;
+    return { dias, inicioGrid, finGrid: dias[6] };
   };
 
-  const diasSemana = obtenerDiasSemana(fechaReferencia);
-  const fechaInicioStr = diasSemana[0].toISOString().split('T')[0];
-  const fechaFinStr = diasSemana[6].toISOString().split('T')[0];
+  const { dias: diasGrid, inicioGrid, finGrid } = 
+    viewMode === 'month' 
+      ? getMonthGridDates(fechaReferencia) 
+      : getWeekGridDates(fechaReferencia);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Calcular rango a consultar según el modo de vista actual
+      let fInicio = inicioGrid;
+      let fFin = finGrid;
+
+      if (viewMode === 'list') {
+        // En vista de lista mostramos todo el mes de la fecha de referencia
+        const year = fechaReferencia.getFullYear();
+        const month = fechaReferencia.getMonth();
+        fInicio = new Date(year, month, 1);
+        fFin = new Date(year, month + 1, 0);
+      }
+
+      const fechaInicioStr = fInicio.toISOString().split('T')[0];
+      const fechaFinStr = fFin.toISOString().split('T')[0];
+
       const [clientesData, publicacionesData] = await Promise.all([
         api.getClientes(),
         api.getPublicaciones({
@@ -51,8 +101,13 @@ const CalendarioPage: React.FC = () => {
           fechaFin: `${fechaFinStr}T23:59:59.999Z`
         })
       ]);
+
       setClientes(clientesData);
       setPublicaciones(publicacionesData);
+      
+      if (clientesData.length > 0 && !nuevoClienteId) {
+        setNuevoClienteId(clientesData[0].id);
+      }
     } catch (err: any) {
       setError(err.message || 'Error al cargar los datos de planificación');
     } finally {
@@ -62,22 +117,30 @@ const CalendarioPage: React.FC = () => {
 
   useEffect(() => {
     cargarDatos();
-  }, [fechaReferencia]);
+  }, [fechaReferencia, viewMode]);
 
-  // Cambiar de semana
-  const semanaAnterior = () => {
-    const nuevaFecha = new Date(fechaReferencia);
-    nuevaFecha.setDate(fechaReferencia.getDate() - 7);
-    setFechaReferencia(nuevaFecha);
+  // Cambiar navegación de fecha
+  const navegarAnterior = () => {
+    const nueva = new Date(fechaReferencia);
+    if (viewMode === 'month' || viewMode === 'list') {
+      nueva.setMonth(fechaReferencia.getMonth() - 1);
+    } else {
+      nueva.setDate(fechaReferencia.getDate() - 7);
+    }
+    setFechaReferencia(nueva);
   };
 
-  const semanaSiguiente = () => {
-    const nuevaFecha = new Date(fechaReferencia);
-    nuevaFecha.setDate(fechaReferencia.getDate() + 7);
-    setFechaReferencia(nuevaFecha);
+  const navegarSiguiente = () => {
+    const nueva = new Date(fechaReferencia);
+    if (viewMode === 'month' || viewMode === 'list') {
+      nueva.setMonth(fechaReferencia.getMonth() + 1);
+    } else {
+      nueva.setDate(fechaReferencia.getDate() + 7);
+    }
+    setFechaReferencia(nueva);
   };
 
-  const semanaActual = () => {
+  const navegarHoy = () => {
     setFechaReferencia(new Date());
   };
 
@@ -90,7 +153,7 @@ const CalendarioPage: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleDrop = async (e: React.DragEvent, targetClienteId: number, targetFechaStr: string) => {
+  const handleDrop = async (e: React.DragEvent, targetFechaStr: string) => {
     e.preventDefault();
     const idStr = e.dataTransfer.getData('text/plain');
     if (!idStr) return;
@@ -98,11 +161,11 @@ const CalendarioPage: React.FC = () => {
     const id = parseInt(idStr);
     if (isNaN(id)) return;
 
-    // Buscar si ya tiene esos datos
+    // Buscar si ya tiene esa fecha
     const pub = publicaciones.find((p) => p.id === id);
     if (pub) {
       const pubFechaStr = new Date(pub.fechaProgramada).toISOString().split('T')[0];
-      if (pub.clienteId === targetClienteId && pubFechaStr === targetFechaStr) {
+      if (pubFechaStr === targetFechaStr) {
         return; 
       }
     }
@@ -111,13 +174,9 @@ const CalendarioPage: React.FC = () => {
     setPublicaciones((prev) =>
       prev.map((p) => {
         if (p.id === id) {
-          // Obtener el nombre del nuevo cliente
-          const nuevoCli = clientes.find((c) => c.id === targetClienteId);
           return {
             ...p,
-            clienteId: targetClienteId,
-            fechaProgramada: `${targetFechaStr}T12:00:00.000Z`,
-            cliente: nuevoCli ? { id: nuevoCli.id, nombre: nuevoCli.nombre } : p.cliente
+            fechaProgramada: `${targetFechaStr}T12:00:00.000Z`
           };
         }
         return p;
@@ -126,18 +185,17 @@ const CalendarioPage: React.FC = () => {
 
     try {
       await api.updatePublicacion(id, {
-        clienteId: targetClienteId,
         fechaProgramada: new Date(`${targetFechaStr}T12:00:00.000Z`).toISOString()
       });
     } catch (err: any) {
       setError(err.message || 'Error al reprogramar la publicación');
-      cargarDatos(); // Revertir en caso de fallo
+      cargarDatos(); // Revertir
     }
   };
 
   const handleCrearCelda = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoTitulo.trim() || !crearCeldaInfo) return;
+    if (!nuevoTitulo.trim() || !crearCeldaInfo || !nuevoClienteId) return;
 
     setCreando(true);
     setError(null);
@@ -145,7 +203,7 @@ const CalendarioPage: React.FC = () => {
     try {
       await api.createPublicacion({
         titulo: nuevoTitulo.trim(),
-        clienteId: crearCeldaInfo.clienteId,
+        clienteId: Number(nuevoClienteId),
         fechaProgramada: new Date(`${crearCeldaInfo.fecha}T12:00:00.000Z`).toISOString(),
         estado: 'POR_GRABAR'
       });
@@ -167,37 +225,57 @@ const CalendarioPage: React.FC = () => {
     'PUBLICADO': 'card-publicado'
   };
 
-  const getRangoTexto = () => {
-    const opciones: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-    const inicio = diasSemana[0].toLocaleDateString('es-ES', opciones);
-    const fin = diasSemana[6].toLocaleDateString('es-ES', { ...opciones, year: 'numeric' });
-    return `Semana del ${inicio} al ${fin}`;
+  const getEncabezadoTitulo = () => {
+    return fechaReferencia.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
   };
 
   return (
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">Programación de Publicaciones (Calendario)</h1>
-          <p className="page-subtitle">Visualización semanal por marcas. Arrastra las tarjetas para reprogramar el día o cambiar de marca.</p>
+          <h1 className="page-title" style={{ textTransform: 'capitalize' }}>
+            {getEncabezadoTitulo()}
+          </h1>
+          <p className="page-subtitle">Gestiona y planifica tus publicaciones mensuales de forma visual.</p>
         </div>
 
-        {/* Controles de navegación de fecha */}
-        <div className="calendar-controls">
-          <button onClick={semanaAnterior} className="btn-secondary btn-nav">
-            &larr; Anterior
-          </button>
-          <button onClick={semanaActual} className="btn-secondary">
-            Esta Semana
-          </button>
-          <button onClick={semanaSiguiente} className="btn-secondary btn-nav">
-            Siguiente &rarr;
-          </button>
-        </div>
-      </div>
+        {/* Controles de navegación y cambio de vista */}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {/* Navegación */}
+          <div className="calendar-controls">
+            <button onClick={navegarAnterior} className="btn-secondary" style={{ padding: '6px 12px' }}>
+              &larr;
+            </button>
+            <button onClick={navegarHoy} className="btn-secondary" style={{ padding: '6px 12px' }}>
+              Hoy
+            </button>
+            <button onClick={navegarSiguiente} className="btn-secondary" style={{ padding: '6px 12px' }}>
+              &rarr;
+            </button>
+          </div>
 
-      <div style={{ marginBottom: '14px', fontWeight: '700', fontSize: '15px', color: 'var(--neon-cyan)', textShadow: '0 0 5px rgba(0, 242, 254, 0.4)', fontFamily: 'Orbitron, sans-serif' }}>
-        {getRangoTexto()}
+          {/* Cambiador de vista */}
+          <div className="calendar-view-switcher">
+            <button
+              onClick={() => setViewMode('month')}
+              className={`calendar-view-btn ${viewMode === 'month' ? 'active' : ''}`}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`calendar-view-btn ${viewMode === 'week' ? 'active' : ''}`}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`calendar-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            >
+              Lista
+            </button>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -207,114 +285,198 @@ const CalendarioPage: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="loading-state">Cargando matriz de planificación...</div>
+        <div className="loading-state">Cargando calendario...</div>
       ) : clientes.length === 0 ? (
         <div className="card" style={{ marginTop: '20px' }}>
           <EmptyState
             icon="box"
             title="Sin Marcas Registradas"
-            description="Para poder planificar y visualizar la matriz de publicaciones del calendario, primero debes agregar al menos una marca en la pestaña de Marcas / Clientes."
+            description="Para poder planificar y visualizar publicaciones, primero debes agregar al menos una marca en la pestaña de Marcas / Clientes."
           />
         </div>
       ) : (
-        <div className="calendar-scroll-container">
-          <table className="calendar-table">
-            <thead>
-              <tr>
-                <th className="brand-header">Negocio / Marca</th>
-                {diasSemana.map((dia, idx) => {
-                  const esHoy = new Date().toDateString() === dia.toDateString();
-                  return (
-                    <th key={idx} className={esHoy ? 'col-header-today' : ''}>
-                      <div className="day-name">
-                        {dia.toLocaleDateString('es-ES', { weekday: 'long' })}
-                      </div>
-                      <div className="day-number">
-                        {dia.getDate()} {dia.toLocaleDateString('es-ES', { month: 'short' })}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {clientes.map((cliente) => (
-                <tr key={cliente.id}>
-                  <td className="brand-cell">
-                    <strong>{cliente.nombre}</strong>
-                  </td>
-                  {diasSemana.map((dia, idx) => {
-                    const fechaStr = dia.toISOString().split('T')[0];
-                    // Filtrar publicaciones de esta marca y este día específico
-                    const publicacionesDia = publicaciones.filter((pub) => {
-                      const pubFechaStr = new Date(pub.fechaProgramada).toISOString().split('T')[0];
-                      return pub.clienteId === cliente.id && pubFechaStr === fechaStr;
-                    });
+        <>
+          {/* Vista de Mes y Semana */}
+          {(viewMode === 'month' || viewMode === 'week') && (
+            <div className="calendar-month-grid">
+              {/* Encabezado del Grid: Días de la semana */}
+              {diasSemanaNombres.map((dia, idx) => (
+                <div key={idx} className="calendar-grid-header-cell">
+                  {dia}
+                </div>
+              ))}
 
-                    return (
-                      <td
-                        key={idx}
-                        className="calendar-cell"
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, cliente.id, fechaStr)}
-                        onDoubleClick={() => setCrearCeldaInfo({ clienteId: cliente.id, fecha: fechaStr })}
-                      >
-                        {publicacionesDia.map((pub) => (
-                          <div
+              {/* Celdas de los Días */}
+              {diasGrid.map((dia, idx) => {
+                const fechaStr = dia.toISOString().split('T')[0];
+                const esOtroMes = dia.getMonth() !== fechaReferencia.getMonth() && viewMode === 'month';
+                const esHoy = new Date().toDateString() === dia.toDateString();
+
+                // Filtrar publicaciones de este día específico
+                const publicacionesDia = publicaciones.filter((pub) => {
+                  const pubFechaStr = new Date(pub.fechaProgramada).toISOString().split('T')[0];
+                  return pubFechaStr === fechaStr;
+                });
+
+                return (
+                  <div
+                    key={idx}
+                    className={`calendar-grid-day-cell ${esOtroMes ? 'other-month' : ''} ${esHoy ? 'today' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, fechaStr)}
+                    onDoubleClick={() => setCrearCeldaInfo({ fecha: fechaStr })}
+                  >
+                    <div className="calendar-grid-day-header">
+                      <span className="calendar-grid-day-number">{dia.getDate()}</span>
+                    </div>
+
+                    <div className="calendar-grid-day-events">
+                      {publicacionesDia.map((pub) => (
+                        <div
+                          key={pub.id}
+                          className={`calendar-pub-card ${classEstados[pub.estado]}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, pub.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPub(pub);
+                          }}
+                        >
+                          <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--neon-pink)', marginBottom: '2px' }}>
+                            {pub.cliente.nombre}
+                          </div>
+                          <div className="pub-card-title" style={{ fontSize: '11px', margin: 0 }}>
+                            {pub.titulo}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      className="cell-quick-add"
+                      title="Agregar publicación"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCrearCeldaInfo({ fecha: fechaStr });
+                      }}
+                    >
+                      +
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Vista de Lista */}
+          {viewMode === 'list' && (
+            <div className="card">
+              <h2 className="card-title">Publicaciones del Mes</h2>
+              {publicaciones.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  No hay publicaciones programadas para este mes.
+                </div>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Marca / Cliente</th>
+                      <th>Título / Descripción</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...publicaciones]
+                      .sort((a, b) => new Date(a.fechaProgramada).getTime() - new Date(b.fechaProgramada).getTime())
+                      .map((pub) => {
+                        const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long'
+                        });
+                        return (
+                          <tr
                             key={pub.id}
-                            className={`calendar-pub-card ${classEstados[pub.estado]}`}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, pub.id)}
+                            style={{ cursor: 'pointer' }}
                             onClick={() => setSelectedPub(pub)}
                           >
-                            <div className="pub-card-title">{pub.titulo}</div>
-                            <div className="pub-card-footer">
-                              <span className="pub-badge-state">
-                                {pub.estado === 'POR_GRABAR' && '🎥'}
-                                {pub.estado === 'EDICION' && '✂️'}
-                                {pub.estado === 'TERMINADO' && '✅'}
-                                {pub.estado === 'PUBLICADO' && '🚀'}
+                            <td style={{ textTransform: 'capitalize' }}>{fechaFormateada}</td>
+                            <td>
+                              <strong>{pub.cliente.nombre}</strong>
+                            </td>
+                            <td>{pub.titulo}</td>
+                            <td>
+                              <span className={`badge ${
+                                pub.estado === 'POR_GRABAR' ? 'badge-admin' : 'badge-user'
+                              }`}>
+                                {pub.estado === 'POR_GRABAR' && 'Por grabar'}
+                                {pub.estado === 'EDICION' && 'Edición'}
+                                {pub.estado === 'TERMINADO' && 'Terminado'}
+                                {pub.estado === 'PUBLICADO' && 'Publicado'}
                               </span>
-                              {pub.driveUrl && <span style={{ fontSize: '9px' }}>📂</span>}
-                            </div>
-                          </div>
-                        ))}
-                        <div className="cell-quick-add" title="Doble clic para programar">+</div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal para crear publicación directamente en celda */}
       {crearCeldaInfo && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
             <div className="modal-header">
               <h3>Programar Publicación</h3>
               <button className="close-btn" onClick={() => setCrearCeldaInfo(null)}>&times;</button>
             </div>
             <form onSubmit={handleCrearCelda} className="form">
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>
-                Programando para <strong>{clientes.find(c => c.id === crearCeldaInfo.clienteId)?.nombre}</strong> el día{' '}
-                <strong>{new Date(`${crearCeldaInfo.fecha}T12:00:00.000Z`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>.
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>
+                Programando para el{' '}
+                <strong>
+                  {new Date(`${crearCeldaInfo.fecha}T12:00:00.000Z`).toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </strong>.
               </p>
+
               <div className="form-group">
                 <label>Título / Descripción</label>
                 <input
                   type="text"
                   value={nuevoTitulo}
                   onChange={(e) => setNuevoTitulo(e.target.value)}
-                  placeholder="Ej: reels promocional de calzado"
+                  placeholder="Ej: Promo de calzado deportivo"
                   required
                   disabled={creando}
                 />
               </div>
-              <div className="modal-footer" style={{ marginTop: '20px' }}>
+
+              <div className="form-group">
+                <label>Marca / Cliente</label>
+                <select
+                  value={nuevoClienteId}
+                  onChange={(e) => setNuevoClienteId(Number(e.target.value))}
+                  required
+                  disabled={creando}
+                >
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-footer" style={{ marginTop: '24px' }}>
                 <button
                   type="button"
                   className="btn-secondary"

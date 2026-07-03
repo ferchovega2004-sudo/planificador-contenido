@@ -161,10 +161,10 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 onChange={(e) => setEstado(e.target.value as any)}
                 disabled={guardando}
               >
-                <option value="POR_GRABAR">Por grabar 🎥</option>
-                <option value="EDICION">En proceso de edición ✂️</option>
-                <option value="TERMINADO">Terminado ✅</option>
-                <option value="PUBLICADO">Publicado 🚀</option>
+                <option value="POR_GRABAR">Por grabar</option>
+                <option value="EDICION">En proceso de edición</option>
+                <option value="TERMINADO">Terminado</option>
+                <option value="PUBLICADO">Publicado</option>
               </select>
             </div>
 
@@ -176,7 +176,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                     type="button"
                     onClick={handleOpenDrive}
                     className="link-btn"
-                    style={{ fontSize: '11px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   >
                     Abrir enlace externo
                   </button>
@@ -245,7 +245,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           </div>
         </form>
 
-        <div className="modal-footer" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
+        <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
           <button
             type="button"
             className="btn-danger"
