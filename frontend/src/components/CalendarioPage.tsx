@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
+import EmptyState from './EmptyState';
 
 const CalendarioPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
@@ -195,7 +196,7 @@ const CalendarioPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ marginBottom: '14px', fontWeight: '700', fontSize: '15px', color: '#1e3a8a' }}>
+      <div style={{ marginBottom: '14px', fontWeight: '700', fontSize: '15px', color: 'var(--neon-cyan)', textShadow: '0 0 5px rgba(0, 242, 254, 0.4)', fontFamily: 'Orbitron, sans-serif' }}>
         {getRangoTexto()}
       </div>
 
@@ -208,7 +209,13 @@ const CalendarioPage: React.FC = () => {
       {loading ? (
         <div className="loading-state">Cargando matriz de planificación...</div>
       ) : clientes.length === 0 ? (
-        <div className="empty-state">No hay marcas registradas. Por favor agrega una en la pestaña de Clientes.</div>
+        <div className="card" style={{ marginTop: '20px' }}>
+          <EmptyState
+            icon="box"
+            title="Sin Marcas Registradas"
+            description="Para poder planificar y visualizar la matriz de publicaciones del calendario, primero debes agregar al menos una marca en la pestaña de Marcas / Clientes."
+          />
+        </div>
       ) : (
         <div className="calendar-scroll-container">
           <table className="calendar-table">

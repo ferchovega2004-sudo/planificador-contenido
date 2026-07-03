@@ -46,7 +46,7 @@ function App(): React.JSX.Element {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', padding: '20px 14px' }}>
-          <img src={logo} alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+          <img src={logo} alt="Logo" className="sidebar-logo" />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>AETHERNET</span>
             <span className="sidebar-subtitle" style={{ fontSize: '8px', marginTop: '2px' }}>MEDIA PRODUCTION GATEWAY</span>
