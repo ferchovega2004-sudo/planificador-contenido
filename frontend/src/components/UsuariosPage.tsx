@@ -62,7 +62,7 @@ const UsuariosPage: React.FC = () => {
     }
   };
 
-  const handleEliminarUsuario = async (id: number) => {
+  const handleEliminarUsuario = async (id: number | string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este usuario? (Soft delete)')) {
       return;
     }

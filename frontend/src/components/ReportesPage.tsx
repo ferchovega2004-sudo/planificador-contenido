@@ -4,31 +4,32 @@ import { api, Cliente } from '../services/api';
 const ReportesPage: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<number | 'TODOS'>('TODOS');
-  const [rangoTipo, setRangoTipo] = useState<'semanal' | 'mensual'>('semanal');
-  
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  const [rangoTipo, setRangoTipo] = useState<'semanal' | 'mensual'>('semanal');
   
   const [loading, setLoading] = useState(false);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Inicializar rango de fechas por defecto según la opción semanal/mensual
+  // Calcular las fechas por defecto al cargar o cambiar el tipo de rango
   useEffect(() => {
     const hoy = new Date();
+    
     if (rangoTipo === 'semanal') {
-      // De lunes a domingo de esta semana
-      const day = hoy.getDay();
-      const diff = hoy.getDate() - day + (day === 0 ? -6 : 1);
+      // Obtener el lunes de la semana actual
+      const diaSemana = hoy.getDay();
+      const diff = hoy.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1);
       const lunes = new Date(hoy.setDate(diff));
+      
       const domingo = new Date(lunes);
       domingo.setDate(lunes.getDate() + 6);
       
       setFechaInicio(lunes.toISOString().split('T')[0]);
       setFechaFin(domingo.toISOString().split('T')[0]);
     } else {
-      // Del primero al último día de este mes
+      // Obtener el primer y último día del mes actual
       const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
       
@@ -37,6 +38,7 @@ const ReportesPage: React.FC = () => {
     }
   }, [rangoTipo]);
 
+  // Cargar lista de clientes (marcas) para el selector
   useEffect(() => {
     const cargarClientes = async () => {
       try {
@@ -44,7 +46,7 @@ const ReportesPage: React.FC = () => {
         const data = await api.getClientes();
         setClientes(data);
       } catch (err: any) {
-        setError(err.message || 'Error al cargar las marcas para filtros');
+        setError(err.message || 'Error al obtener marcas de clientes');
       } finally {
         setLoadingClientes(false);
       }
@@ -52,16 +54,16 @@ const ReportesPage: React.FC = () => {
     cargarClientes();
   }, []);
 
-  const handleDescargarReporte = async (e: React.FormEvent) => {
+  const handleImprimirReporte = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fechaInicio || !fechaFin) {
       setError('Por favor, selecciona las fechas de inicio y fin');
       return;
     }
 
-    setLoading(true);
-    setError(null);
     setSuccess(null);
+    setError(null);
+    setLoading(true);
 
     try {
       const filtros: any = {
@@ -70,52 +72,197 @@ const ReportesPage: React.FC = () => {
       };
       
       if (clienteSeleccionado !== 'TODOS') {
-        filtros.clienteId = clienteSeleccionado;
+        filtros.clienteId = Number(clienteSeleccionado);
       }
 
-      const blob = await api.generarReportePdf(filtros);
-      
-      // Crear URL de descarga del Blob y disparar la descarga
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `planificacion_contenido_${Date.now()}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      
-      // Limpiar recursos
-      if (link.parentNode) {
-        link.parentNode.removeChild(link);
-      }
-      window.URL.revokeObjectURL(url);
+      // Obtener datos directamente de Supabase
+      const publicaciones = await api.getPublicaciones(filtros);
 
-      setSuccess('El archivo PDF del reporte se ha descargado correctamente');
+      let clienteNombre = 'Todos los clientes';
+      if (clienteSeleccionado !== 'TODOS' && publicaciones.length > 0) {
+        clienteNombre = publicaciones[0].cliente.nombre;
+      }
+
+      const rangoTexto = `${new Date(fechaInicio).toLocaleDateString('es-ES')} - ${new Date(fechaFin).toLocaleDateString('es-ES')}`;
+
+      const mapeoEstados: any = {
+        'POR_GRABAR': 'Por grabar 🎥',
+        'EDICION': 'En proceso de edición ✂️',
+        'TERMINADO': 'Terminado ✅',
+        'PUBLICADO': 'Publicado 🚀'
+      };
+
+      const filasHTML = publicaciones.map((pub: any) => {
+        const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short'
+        });
+
+        const tituloSafe = pub.titulo.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const estadoTexto = mapeoEstados[pub.estado] || pub.estado;
+        const guionSafe = pub.guion ? pub.guion.replace(/<[^>]*>/g, ' ').substring(0, 100) + (pub.guion.length > 100 ? '...' : '') : 'Sin guión';
+        const driveSafe = pub.driveUrl ? `<a href="${pub.driveUrl}" target="_blank">Ver material</a>` : 'Sin link';
+        const notasSafe = pub.notas ? pub.notas.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 100) + (pub.notas.length > 100 ? '...' : '') : 'Sin notas';
+
+        return `
+          <tr>
+            <td><strong>${pub.cliente.nombre}</strong></td>
+            <td>${fechaFormateada}</td>
+            <td>${tituloSafe}</td>
+            <td><span class="badge badge-${pub.estado.toLowerCase()}">${estadoTexto}</span></td>
+            <td class="text-muted">${guionSafe}</td>
+            <td>${driveSafe}</td>
+            <td class="text-muted">${notasSafe}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Reporte de Publicaciones</title>
+          <style>
+            @page {
+              size: letter landscape;
+              margin: 0.4in;
+            }
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              color: #333;
+              margin: 0;
+              padding: 0;
+              font-size: 11px;
+              background-color: #fff;
+            }
+            .header {
+              margin-bottom: 20px;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 10px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+            }
+            .header h1 {
+              margin: 0 0 5px 0;
+              font-size: 20px;
+              color: #1e3a8a;
+            }
+            .header .subtitle {
+              margin: 0;
+              color: #4b5563;
+              font-size: 12px;
+            }
+            .header .meta {
+              text-align: right;
+              font-size: 10px;
+              color: #6b7280;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+            }
+            th, td {
+              border: 1px solid #e5e7eb;
+              padding: 8px 10px;
+              text-align: left;
+              vertical-align: top;
+            }
+            th {
+              background-color: #f3f4f6;
+              color: #1f2937;
+              font-weight: bold;
+            }
+            tr:nth-child(even) {
+              background-color: #f9fafb;
+            }
+            .badge {
+              display: inline-block;
+              padding: 3px 6px;
+              border-radius: 4px;
+              font-size: 9px;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+            .badge-por_grabar { background-color: #fef3c7; color: #d97706; }
+            .badge-edicion { background-color: #dbeafe; color: #2563eb; }
+            .badge-terminado { background-color: #d1fae5; color: #059669; }
+            .badge-publicado { background-color: #f3e8ff; color: #7c3aed; }
+            .text-muted { color: #6b7280; }
+            a { color: #2563eb; text-decoration: none; font-weight: 500; }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 9px;
+              color: #9ca3af;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>Reporte de Publicaciones</h1>
+              <p class="subtitle"><strong>Cliente:</strong> ${clienteNombre} | <strong>Rango:</strong> ${rangoTexto}</p>
+            </div>
+            <div class="meta">
+              Generado: ${new Date().toLocaleDateString('es-ES')} ${new Date().toLocaleTimeString('es-ES')}<br>
+              Total publicaciones: ${publicaciones.length}
+            </div>
+          </div>
+
+          ${publicaciones.length === 0 ? `
+            <div style="text-align: center; padding: 40px; font-size: 14px; color: #6b7280; border: 1px dashed #d1d5db; border-radius: 6px;">
+              No se encontraron publicaciones planificadas para el rango y cliente seleccionado.
+            </div>
+          ` : `
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Negocio / Marca</th>
+                  <th style="width: 12%;">Fecha</th>
+                  <th style="width: 20%;">Título / Publicación</th>
+                  <th style="width: 15%;">Estado</th>
+                  <th style="width: 20%;">Guión (Extracto)</th>
+                  <th style="width: 10%;">Material</th>
+                  <th style="width: 18%;">Notas de Producción</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filasHTML}
+              </tbody>
+            </table>
+          `}
+
+          <div class="footer">
+            Sistema de Planificación de Contenido - Generado automáticamente
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+        setSuccess('Se ha abierto la vista de impresión en una nueva pestaña.');
+      } else {
+        setError('El bloqueador de ventanas emergentes ha bloqueado la vista de impresión. Por favor, permítelo.');
+      }
     } catch (err: any) {
-      setError(err.message || 'Error al generar el archivo de reporte PDF');
+      setError(err.message || 'Error al obtener publicaciones para el reporte.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleImprimirReporte = (e: React.MouseEvent | React.FormEvent) => {
-    e.preventDefault();
-    if (!fechaInicio || !fechaFin) {
-      setError('Por favor, selecciona las fechas de inicio y fin');
-      return;
-    }
-
-    setSuccess(null);
-    setError(null);
-
-    const token = localStorage.getItem('token') || '';
-    let url = `${api.getApiUrl()}/reportes/html?token=${encodeURIComponent(token)}&fechaInicio=${fechaInicio}T00:00:00.000Z&fechaFin=${fechaFin}T23:59:59.999Z`;
-    
-    if (clienteSeleccionado !== 'TODOS') {
-      url += `&clienteId=${clienteSeleccionado}`;
-    }
-
-    window.open(url, '_blank');
-    setSuccess('Se ha abierto la vista de impresión en una nueva pestaña.');
   };
 
   return (
@@ -141,7 +288,7 @@ const ReportesPage: React.FC = () => {
 
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
         <h2 className="card-title">Filtros de Reporte</h2>
-        <form onSubmit={handleDescargarReporte} className="form">
+        <form onSubmit={handleImprimirReporte} className="form">
           <div className="form-group">
             <label>Seleccionar Cliente / Marca</label>
             {loadingClientes ? (
@@ -211,22 +358,7 @@ const ReportesPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button 
-              type="button" 
-              onClick={handleImprimirReporte}
-              className="btn-secondary" 
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} 
-              disabled={loading}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                <rect x="6" y="14" width="12" height="8"></rect>
-              </svg>
-              Vista de Impresión / PDF Web
-            </button>
-
+          <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px', textAlign: 'right' }}>
             <button 
               type="submit" 
               className="btn-primary" 
@@ -241,11 +373,11 @@ const ReportesPage: React.FC = () => {
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
                   </svg>
-                  Descargar PDF (Servidor)
+                  Generar Vista de Impresión / PDF
                 </>
               )}
             </button>

@@ -1,33 +1,7 @@
-const getApiUrl = (): string => {
-  const savedUrl = localStorage.getItem('API_BASE_URL');
-  if (savedUrl && savedUrl.trim()) {
-    return savedUrl.trim();
-  }
-  // Si estamos en el navegador en producción (no cargados por file://)
-  if (window.location.protocol !== 'file:') {
-    return `${window.location.origin}/api`;
-  }
-  // Por defecto, se asume que corre localmente en el puerto 3000
-  return 'http://localhost:3000/api';
-};
-
-const BASE_URL = getApiUrl();
-
-// Cabecera común que incluye el JWT si existe
-const getHeaders = (contentType: string | null = 'application/json'): HeadersInit => {
-  const token = localStorage.getItem('token');
-  const headers: HeadersInit = {};
-  if (contentType) {
-    headers['Content-Type'] = contentType;
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-};
+import { supabase } from './supabaseClient';
 
 export interface Usuario {
-  id: number;
+  id: number | string;
   username: string;
   nombre: string;
   rol: 'ADMIN' | 'USER';
@@ -57,27 +31,50 @@ export interface Publicacion {
 }
 
 export const api = {
-  getApiUrl(): string {
-    return BASE_URL;
-  },
   // 1. Autenticación & Usuarios
   async login(username: string, password: string): Promise<{ token: string; usuario: Usuario }> {
-    const res = await fetch(`${BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+    // Mapear username a email por defecto en Supabase Auth si no contiene @
+    const email = username.includes('@') ? username : `${username}@planificador.com`;
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al iniciar sesión');
+    
+    if (error) {
+      throw new Error(error.message || 'Error al iniciar sesión');
     }
-    const data = await res.json();
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('usuario', JSON.stringify(data.usuario));
-    return data;
+
+    // Buscar el perfil extendido en la tabla pública usuarios
+    const { data: profile, error: profileError } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', data.user.id)
+      .is('deletedAt', null)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.warn('Error al obtener perfil extendido:', profileError.message);
+    }
+
+    const usuario: Usuario = {
+      id: data.user.id,
+      username: data.user.email || username,
+      nombre: profile?.nombre || 'Miembro del Equipo',
+      rol: (profile?.rol as 'ADMIN' | 'USER') || 'USER',
+    };
+
+    localStorage.setItem('token', data.session?.access_token || '');
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+
+    return {
+      token: data.session?.access_token || '',
+      usuario,
+    };
   },
 
   logout(): void {
+    supabase.auth.signOut();
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
   },
@@ -93,100 +90,149 @@ export const api = {
   },
 
   async registrarUsuario(data: Omit<Usuario, 'id'> & { password?: string }): Promise<Usuario> {
-    const res = await fetch(`${BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
+    const email = data.username.includes('@') ? data.username : `${data.username}@planificador.com`;
+    const password = data.password || 'Planificador123!';
+    
+    // Crear el usuario en Supabase Auth
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          nombre: data.nombre,
+          rol: data.rol,
+        },
+      },
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al registrar usuario');
+
+    if (error) {
+      throw new Error(error.message || 'Error al registrar usuario en Supabase Auth');
     }
-    return res.json();
+
+    if (!signUpData.user) {
+      throw new Error('No se pudo crear el usuario.');
+    }
+
+    return {
+      id: signUpData.user.id,
+      username: data.username,
+      nombre: data.nombre,
+      rol: data.rol,
+    };
   },
 
   async getUsuarios(): Promise<Usuario[]> {
-    const res = await fetch(`${BASE_URL}/auth/usuarios`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al obtener usuarios del equipo');
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .is('deletedAt', null);
+
+    if (error) {
+      throw new Error(error.message || 'Error al obtener usuarios');
     }
-    return res.json();
+
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      nombre: u.nombre,
+      rol: u.rol,
+      createdAt: u.createdAt,
+    }));
   },
 
-  async deleteUsuario(id: number): Promise<void> {
-    const res = await fetch(`${BASE_URL}/auth/usuarios/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al eliminar usuario');
+  async deleteUsuario(id: number | string): Promise<void> {
+    // Soft delete actualizando deletedAt en la tabla pública
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ deletedAt: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al eliminar usuario');
     }
   },
 
-  async cambiarPassword(usuarioId: number, nuevaContrasena: string): Promise<void> {
-    const res = await fetch(`${BASE_URL}/auth/usuarios/password`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ usuarioId, nuevaContrasena }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al cambiar contraseña');
+  async cambiarPassword(usuarioId: number | string, nuevaContrasena: string): Promise<void> {
+    const currentUsr = this.getUsuarioActual();
+    if (currentUsr && currentUsr.id === usuarioId) {
+      // El usuario actual puede cambiar su propia contraseña en Supabase Auth
+      const { error } = await supabase.auth.updateUser({
+        password: nuevaContrasena,
+      });
+      if (error) {
+        throw new Error(error.message || 'Error al cambiar contraseña');
+      }
+    } else {
+      throw new Error(
+        'Por seguridad, solo el usuario autenticado puede cambiar su propia contraseña. Para restablecer contraseñas de otros usuarios, hágalo desde el panel de control de Supabase.'
+      );
     }
   },
 
   // 2. Clientes (Marcas) CRUD
   async getClientes(): Promise<Cliente[]> {
-    const res = await fetch(`${BASE_URL}/clientes`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al obtener marcas');
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .is('deletedAt', null)
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message || 'Error al obtener marcas');
     }
-    return res.json();
+
+    return (data || []).map((c: any) => ({
+      id: c.id,
+      nombre: c.nombre,
+      createdAt: c.createdAt,
+    }));
   },
 
   async createCliente(nombre: string): Promise<Cliente> {
-    const res = await fetch(`${BASE_URL}/clientes`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ nombre }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al registrar marca');
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([{ nombre }])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Error al registrar marca');
     }
-    return res.json();
+
+    return {
+      id: data.id,
+      nombre: data.nombre,
+      createdAt: data.createdAt,
+    };
   },
 
   async updateCliente(id: number, nombre: string): Promise<Cliente> {
-    const res = await fetch(`${BASE_URL}/clientes/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ nombre }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al actualizar marca');
+    const { data, error } = await supabase
+      .from('clientes')
+      .update({ nombre, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Error al actualizar marca');
     }
-    return res.json();
+
+    return {
+      id: data.id,
+      nombre: data.nombre,
+      createdAt: data.createdAt,
+    };
   },
 
   async deleteCliente(id: number): Promise<void> {
-    const res = await fetch(`${BASE_URL}/clientes/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al eliminar marca');
+    const { error } = await supabase
+      .from('clientes')
+      .update({ deletedAt: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al eliminar marca');
     }
   },
 
@@ -196,27 +242,44 @@ export const api = {
     fechaInicio?: string;
     fechaFin?: string;
   }): Promise<Publicacion[]> {
-    let url = `${BASE_URL}/publicaciones`;
-    const params = new URLSearchParams();
+    let query = supabase
+      .from('publicaciones')
+      .select('*, cliente:clientes(id, nombre)')
+      .is('deletedAt', null);
+
     if (filtros) {
-      if (filtros.clienteId) params.append('clienteId', filtros.clienteId.toString());
-      if (filtros.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros.fechaFin) params.append('fechaFin', filtros.fechaFin);
-    }
-    const queryStr = params.toString();
-    if (queryStr) {
-      url += `?${queryStr}`;
+      if (filtros.clienteId) {
+        query = query.eq('clienteId', filtros.clienteId);
+      }
+      if (filtros.fechaInicio) {
+        query = query.gte('fechaProgramada', filtros.fechaInicio);
+      }
+      if (filtros.fechaFin) {
+        query = query.lte('fechaProgramada', filtros.fechaFin);
+      }
     }
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al obtener publicaciones');
+    const { data, error } = await query.order('fechaProgramada', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message || 'Error al obtener publicaciones');
     }
-    return res.json();
+
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      clienteId: p.clienteId,
+      cliente: p.cliente ? {
+        id: p.cliente.id,
+        nombre: p.cliente.nombre,
+      } : { id: 0, nombre: 'Marca Desconocida' },
+      titulo: p.titulo,
+      fechaProgramada: p.fechaProgramada,
+      estado: p.estado,
+      guion: p.guion,
+      driveUrl: p.driveUrl,
+      notas: p.notas,
+      createdAt: p.createdAt,
+    }));
   },
 
   async createPublicacion(data: {
@@ -225,16 +288,31 @@ export const api = {
     fechaProgramada: string;
     estado?: string;
   }): Promise<Publicacion> {
-    const res = await fetch(`${BASE_URL}/publicaciones`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al crear publicación');
+    const { data: resData, error } = await supabase
+      .from('publicaciones')
+      .insert([data])
+      .select('*, cliente:clientes(id, nombre)')
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Error al crear publicación');
     }
-    return res.json();
+
+    return {
+      id: resData.id,
+      clienteId: resData.clienteId,
+      cliente: resData.cliente ? {
+        id: resData.cliente.id,
+        nombre: resData.cliente.nombre,
+      } : { id: 0, nombre: 'Marca Desconocida' },
+      titulo: resData.titulo,
+      fechaProgramada: resData.fechaProgramada,
+      estado: resData.estado,
+      guion: resData.guion,
+      driveUrl: resData.driveUrl,
+      notas: resData.notas,
+      createdAt: resData.createdAt,
+    };
   },
 
   async updatePublicacion(
@@ -243,54 +321,53 @@ export const api = {
       clienteId?: number;
     }
   ): Promise<Publicacion> {
-    const res = await fetch(`${BASE_URL}/publicaciones/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al actualizar publicación');
+    const { data: resData, error } = await supabase
+      .from('publicaciones')
+      .update({ ...data, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select('*, cliente:clientes(id, nombre)')
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Error al actualizar publicación');
     }
-    return res.json();
+
+    return {
+      id: resData.id,
+      clienteId: resData.clienteId,
+      cliente: resData.cliente ? {
+        id: resData.cliente.id,
+        nombre: resData.cliente.nombre,
+      } : { id: 0, nombre: 'Marca Desconocida' },
+      titulo: resData.titulo,
+      fechaProgramada: resData.fechaProgramada,
+      estado: resData.estado,
+      guion: resData.guion,
+      driveUrl: resData.driveUrl,
+      notas: resData.notas,
+      createdAt: resData.createdAt,
+    };
   },
 
   async deletePublicacion(id: number): Promise<void> {
-    const res = await fetch(`${BASE_URL}/publicaciones/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al eliminar publicación');
+    const { error } = await supabase
+      .from('publicaciones')
+      .update({ deletedAt: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al eliminar publicación');
     }
   },
 
-  // 4. Reportes & Exportación PDF
+  // 4. Reportes PDF (Deshabilitado en esta arquitectura sin servidor, redirigido a vista de impresión local)
   async generarReportePdf(filtros: {
     clienteId?: number;
     fechaInicio?: string;
     fechaFin?: string;
   }): Promise<Blob> {
-    let url = `${BASE_URL}/reportes/pdf`;
-    const params = new URLSearchParams();
-    if (filtros.clienteId) params.append('clienteId', filtros.clienteId.toString());
-    if (filtros.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-    if (filtros.fechaFin) params.append('fechaFin', filtros.fechaFin);
-    
-    const queryStr = params.toString();
-    if (queryStr) {
-      url += `?${queryStr}`;
-    }
-
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: getHeaders(null), // null para no enviar content-type en GET, pero sí el token
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al generar PDF del reporte');
-    }
-    return res.blob();
+    throw new Error(
+      'La generación de PDF por servidor está deshabilitada en el modo "Solo Supabase". Por favor, utiliza el botón "Vista de Impresión / PDF Web" para generar el documento de forma directa y limpia en tu navegador.'
+    );
   },
 };
