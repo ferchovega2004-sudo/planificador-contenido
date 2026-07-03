@@ -1,0 +1,48 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Usuario {
+  id        Int       @id @default(autoincrement()) @map("Id")
+  username  String    @unique @map("Username")
+  password  String    @map("Password")
+  nombre    String    @map("Nombre")
+  rol       String    @default("USER") @map("Rol") // "ADMIN" o "USER"
+  createdAt DateTime  @default(now()) @map("CreatedAt")
+  updatedAt DateTime? @updatedAt @map("UpdatedAt")
+  deletedAt DateTime? @map("DeletedAt") // Soft delete
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id            Int           @id @default(autoincrement()) @map("Id")
+  nombre        String        @unique @map("Nombre")
+  createdAt     DateTime      @default(now()) @map("CreatedAt")
+  updatedAt     DateTime?     @updatedAt @map("UpdatedAt")
+  deletedAt     DateTime?     @map("DeletedAt") // Soft delete
+  publicaciones Publicacion[]
+
+  @@map("clientes")
+}
+
+model Publicacion {
+  id              Int       @id @default(autoincrement()) @map("Id")
+  clienteId       Int       @map("ClienteId")
+  cliente         Cliente   @relation(fields: [clienteId], references: [id])
+  titulo          String    @map("Titulo")
+  fechaProgramada DateTime  @map("FechaProgramada")
+  estado          String    @default("POR_GRABAR") @map("Estado") // POR_GRABAR, EDICION, TERMINADO, PUBLICADO
+  guion           String?   @db.Text @map("Guion") // Editor de texto enriquecido
+  driveUrl        String?   @db.VarChar(500) @map("DriveUrl") // Links de Google Drive
+  notas           String?   @db.Text @map("Notas") // Notas de producción
+  createdAt       DateTime  @default(now()) @map("CreatedAt")
+  updatedAt       DateTime? @updatedAt @map("UpdatedAt")
+  deletedAt       DateTime? @map("DeletedAt") // Soft delete
+
+  @@map("publicaciones")
+}
