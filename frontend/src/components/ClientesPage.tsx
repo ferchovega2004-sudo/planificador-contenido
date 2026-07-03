@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, Cliente } from '../services/api';
+import ConfirmDialog from './ConfirmDialog';
 
 const ClientesPage: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -7,10 +8,18 @@ const ClientesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [nombre, setNombre] = useState('');
+  const [contenido, setContenido] = useState('');
   
   // Modificar/Editar
   const [editCliente, setEditCliente] = useState<Cliente | null>(null);
   const [editNombre, setEditNombre] = useState('');
+  const [editContenido, setEditContenido] = useState('');
+
+  // Estados para ConfirmDialog y paginación
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [clienteAEliminar, setClienteAEliminar] = useState<number | null>(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 10;
 
   const cargarClientes = async () => {
     try {
@@ -36,8 +45,9 @@ const ClientesPage: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
-      await api.createCliente(nombre);
+      await api.createCliente(nombre, contenido);
       setNombre('');
+      setContenido('');
       setSuccess('Marca registrada correctamente');
       cargarClientes();
     } catch (err: any) {
@@ -52,31 +62,49 @@ const ClientesPage: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
-      await api.updateCliente(editCliente.id, editNombre);
+      await api.updateCliente(editCliente.id, editNombre, editContenido);
       setSuccess('Marca actualizada correctamente');
       setEditCliente(null);
       setEditNombre('');
+      setEditContenido('');
       cargarClientes();
     } catch (err: any) {
       setError(err.message || 'Error al actualizar marca');
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta marca? Todas las publicaciones asociadas podrían verse afectadas.')) {
-      return;
-    }
+  const handleEliminarClick = (id: number) => {
+    setClienteAEliminar(id);
+    setShowConfirmDelete(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!clienteAEliminar) return;
+    setShowConfirmDelete(false);
     setError(null);
     setSuccess(null);
     try {
-      await api.deleteCliente(id);
+      await api.deleteCliente(clienteAEliminar);
       setSuccess('Marca eliminada correctamente');
-      cargarClientes();
+      setClienteAEliminar(null);
+      cargarClientes().then(() => {
+        const totalItems = clientes.length - 1;
+        const maxPagina = Math.ceil(totalItems / itemsPorPagina);
+        if (paginaActual > maxPagina && maxPagina > 0) {
+          setPaginaActual(maxPagina);
+        }
+      });
     } catch (err: any) {
       setError(err.message || 'Error al eliminar marca');
+      setClienteAEliminar(null);
     }
   };
+
+  const totalPaginas = Math.ceil(clientes.length / itemsPorPagina);
+  const clientesPaginados = clientes.slice(
+    (paginaActual - 1) * itemsPorPagina,
+    paginaActual * itemsPorPagina
+  );
 
   return (
     <div className="page-container">
@@ -108,26 +136,32 @@ const ClientesPage: React.FC = () => {
           ) : clientes.length === 0 ? (
             <div className="empty-state">No hay marcas registradas. ¡Registra la primera en el formulario lateral!</div>
           ) : (
-            <table className="table">
-              <thead>
+            <>
+              <table className="table">
+                <thead>
                 <tr>
-                  <th style={{ width: '15%' }}>ID</th>
-                  <th>Nombre de la Marca</th>
-                  <th style={{ textAlign: 'right', width: '25%' }}>Acciones</th>
+                  <th style={{ width: '10%' }}>ID</th>
+                  <th style={{ width: '25%' }}>Nombre de la Marca</th>
+                  <th>Contenido / Trabajo</th>
+                  <th style={{ textAlign: 'right', width: '20%' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {clientes.map((c) => (
+                {clientesPaginados.map((c) => (
                   <tr key={c.id}>
                     <td>#{c.id}</td>
                     <td>
                       <strong>{c.nombre}</strong>
+                    </td>
+                    <td className="text-muted" style={{ fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                      {c.contenido || 'Sin contenido especificado'}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <button
                         onClick={() => {
                           setEditCliente(c);
                           setEditNombre(c.nombre);
+                          setEditContenido(c.contenido || '');
                         }}
                         className="btn-action btn-secondary"
                         style={{ marginRight: '8px' }}
@@ -135,7 +169,7 @@ const ClientesPage: React.FC = () => {
                         Editar
                       </button>
                       <button
-                        onClick={() => handleEliminar(c.id)}
+                        onClick={() => handleEliminarClick(c.id)}
                         className="btn-action btn-danger"
                       >
                         Eliminar
@@ -144,7 +178,34 @@ const ClientesPage: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+
+              {totalPaginas > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                  >
+                    &larr; Anterior
+                  </button>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Página <strong>{paginaActual}</strong> de {totalPaginas}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                    disabled={paginaActual === totalPaginas}
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                  >
+                    Siguiente &rarr;
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -164,6 +225,25 @@ const ClientesPage: React.FC = () => {
                     required
                   />
                 </div>
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label>Contenido / Trabajos de la Marca</label>
+                  <textarea
+                    value={editContenido}
+                    onChange={(e) => setEditContenido(e.target.value)}
+                    placeholder="Ej: Publicidad de calzado, videos cortos..."
+                    rows={4}
+                    style={{
+                      backgroundColor: '#160e11',
+                      border: '1px solid #3b232c',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="submit" className="btn-primary" style={{ flex: 1 }}>
                     Guardar Cambios
@@ -174,6 +254,7 @@ const ClientesPage: React.FC = () => {
                     onClick={() => {
                       setEditCliente(null);
                       setEditNombre('');
+                      setEditContenido('');
                     }}
                   >
                     Cancelar
@@ -195,6 +276,25 @@ const ClientesPage: React.FC = () => {
                     required
                   />
                 </div>
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label>Contenido / Trabajos de la Marca</label>
+                  <textarea
+                    value={contenido}
+                    onChange={(e) => setContenido(e.target.value)}
+                    placeholder="Describe lo que se trabaja para este negocio..."
+                    rows={4}
+                    style={{
+                      backgroundColor: '#160e11',
+                      border: '1px solid #3b232c',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      outline: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
                 <button type="submit" className="btn-primary" style={{ width: '100%' }}>
                   Registrar Marca
                 </button>
@@ -203,6 +303,20 @@ const ClientesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        title="Eliminar Marca / Cliente"
+        message="¿Estás seguro de que deseas eliminar esta marca? Todas las publicaciones asociadas podrían verse afectadas."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setShowConfirmDelete(false);
+          setClienteAEliminar(null);
+        }}
+        variant="danger"
+      />
     </div>
   );
 };

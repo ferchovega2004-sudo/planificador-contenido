@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
+import ConfirmDialog from './ConfirmDialog';
 
 interface DetallePublicacionModalProps {
   publicacion: Publicacion;
@@ -27,6 +28,9 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Formatear fecha para el input datetime-local o date (YYYY-MM-DD)
@@ -67,11 +71,8 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     }
   };
 
-  const handleEliminar = async () => {
-    if (!confirm('¿Estás seguro de que deseas eliminar permanentemente esta publicación de la planificación?')) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    setShowConfirmDelete(false);
     setEliminando(true);
     setError(null);
 
@@ -81,6 +82,73 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     } catch (err: any) {
       setError(err.message || 'Error al eliminar publicación');
       setEliminando(false);
+    }
+  };
+
+  const applyFormat = (command: 'bold' | 'italic' | 'underline' | 'list') => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    let parent: Node | null = selection.anchorNode;
+    let isInsideEditor = false;
+    while (parent) {
+      if (parent === editorRef.current) {
+        isInsideEditor = true;
+        break;
+      }
+      parent = parent.parentNode;
+    }
+    if (!isInsideEditor) return;
+
+    const range = selection.getRangeAt(0);
+
+    if (command === 'list') {
+      if (range.collapsed) {
+        const ul = document.createElement('ul');
+        const li = document.createElement('li');
+        li.innerHTML = '<br>';
+        ul.appendChild(li);
+        range.insertNode(ul);
+        
+        const newRange = document.createRange();
+        newRange.setStart(li, 0);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } else {
+        const ul = document.createElement('ul');
+        const li = document.createElement('li');
+        li.appendChild(range.extractContents());
+        ul.appendChild(li);
+        range.insertNode(ul);
+      }
+    } else {
+      const tagMap = {
+        bold: 'strong',
+        italic: 'em',
+        underline: 'u'
+      };
+      const tagName = tagMap[command];
+      
+      if (range.collapsed) {
+        const el = document.createElement(tagName);
+        el.innerHTML = '&#8203;'; 
+        range.insertNode(el);
+        
+        const newRange = document.createRange();
+        newRange.setStart(el.firstChild!, 1);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } else {
+        const el = document.createElement(tagName);
+        el.appendChild(range.extractContents());
+        range.insertNode(el);
+      }
+    }
+
+    if (editorRef.current) {
+      setGuion(editorRef.current.innerHTML);
     }
   };
 
@@ -213,16 +281,17 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
               
               {/* Barra de herramientas simulada para el editor de texto enriquecido */}
               <div className="rich-editor-toolbar">
-                <button type="button" title="Negrita" onClick={() => document.execCommand('bold', false)} style={{ fontWeight: 'bold' }}>B</button>
-                <button type="button" title="Cursiva" onClick={() => document.execCommand('italic', false)} style={{ fontStyle: 'italic' }}>I</button>
-                <button type="button" title="Subrayado" onClick={() => document.execCommand('underline', false)} style={{ textDecoration: 'underline' }}>U</button>
-                <button type="button" title="Listas" onClick={() => document.execCommand('insertUnorderedList', false)}>• List</button>
+                <button type="button" title="Negrita" onClick={() => applyFormat('bold')} style={{ fontWeight: 'bold' }}>B</button>
+                <button type="button" title="Cursiva" onClick={() => applyFormat('italic')} style={{ fontStyle: 'italic' }}>I</button>
+                <button type="button" title="Subrayado" onClick={() => applyFormat('underline')} style={{ textDecoration: 'underline' }}>U</button>
+                <button type="button" title="Listas" onClick={() => applyFormat('list')}>• List</button>
                 <span style={{ flex: 1 }}></span>
                 <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
               </div>
 
               {/* Contenedor editable para simular el Rich Text Editor */}
               <div
+                ref={editorRef}
                 className="rich-editor-content"
                 contentEditable={!guardando}
                 suppressContentEditableWarning
@@ -249,7 +318,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           <button
             type="button"
             className="btn-danger"
-            onClick={handleEliminar}
+            onClick={() => setShowConfirmDelete(true)}
             disabled={guardando || eliminando}
           >
             {eliminando ? 'Eliminando...' : 'Eliminar Publicación'}
@@ -275,6 +344,17 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        title="Eliminar Publicación"
+        message="¿Estás seguro de que deseas eliminar permanentemente esta publicación de la planificación? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowConfirmDelete(false)}
+        variant="danger"
+      />
     </div>
   );
 };

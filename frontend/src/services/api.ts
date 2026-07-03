@@ -4,13 +4,14 @@ export interface Usuario {
   id: number | string;
   username: string;
   nombre: string;
-  rol: 'ADMIN' | 'USER';
+  rol: 'ADMIN' | 'USER' | 'EDITOR' | 'ACOMPAÑANTE';
   createdAt?: string;
 }
 
 export interface Cliente {
   id: number;
   nombre: string;
+  contenido?: string;
   createdAt?: string;
 }
 
@@ -171,11 +172,21 @@ export const api = {
 
   // 2. Clientes (Marcas) CRUD
   async getClientes(): Promise<Cliente[]> {
-    const { data, error } = await supabase
+    const usr = this.getUsuarioActual();
+    let query = supabase
       .from('clientes')
       .select('*')
-      .is('deletedAt', null)
-      .order('nombre', { ascending: true });
+      .is('deletedAt', null);
+
+    if (usr && usr.rol === 'ACOMPAÑANTE') {
+      const marcasPermitidas = await this.getMarcasPermitidasPorUsuario(usr.id);
+      if (marcasPermitidas.length === 0) {
+        return [];
+      }
+      query = query.in('id', marcasPermitidas);
+    }
+
+    const { data, error } = await query.order('nombre', { ascending: true });
 
     if (error) {
       throw new Error(error.message || 'Error al obtener marcas');
@@ -184,14 +195,15 @@ export const api = {
     return (data || []).map((c: any) => ({
       id: c.id,
       nombre: c.nombre,
+      contenido: c.contenido,
       createdAt: c.createdAt,
     }));
   },
 
-  async createCliente(nombre: string): Promise<Cliente> {
+  async createCliente(nombre: string, contenido?: string): Promise<Cliente> {
     const { data, error } = await supabase
       .from('clientes')
-      .insert([{ nombre }])
+      .insert([{ nombre, contenido }])
       .select()
       .single();
 
@@ -202,14 +214,15 @@ export const api = {
     return {
       id: data.id,
       nombre: data.nombre,
+      contenido: data.contenido,
       createdAt: data.createdAt,
     };
   },
 
-  async updateCliente(id: number, nombre: string): Promise<Cliente> {
+  async updateCliente(id: number, nombre: string, contenido?: string): Promise<Cliente> {
     const { data, error } = await supabase
       .from('clientes')
-      .update({ nombre, updatedAt: new Date().toISOString() })
+      .update({ nombre, contenido, updatedAt: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -221,6 +234,7 @@ export const api = {
     return {
       id: data.id,
       nombre: data.nombre,
+      contenido: data.contenido,
       createdAt: data.createdAt,
     };
   },
@@ -242,10 +256,19 @@ export const api = {
     fechaInicio?: string;
     fechaFin?: string;
   }): Promise<Publicacion[]> {
+    const usr = this.getUsuarioActual();
     let query = supabase
       .from('publicaciones')
       .select('*, cliente:clientes(id, nombre)')
       .is('deletedAt', null);
+
+    if (usr && usr.rol === 'ACOMPAÑANTE') {
+      const marcasPermitidas = await this.getMarcasPermitidasPorUsuario(usr.id);
+      if (marcasPermitidas.length === 0) {
+        return [];
+      }
+      query = query.in('clienteId', marcasPermitidas);
+    }
 
     if (filtros) {
       if (filtros.clienteId) {
@@ -369,5 +392,61 @@ export const api = {
     throw new Error(
       'La generación de PDF por servidor está deshabilitada en el modo "Solo Supabase". Por favor, utiliza el botón "Vista de Impresión / PDF Web" para generar el documento de forma directa y limpia en tu navegador.'
     );
+  },
+
+  // 5. Métodos de Relaciones de Marcas para Acompañante
+  async getAsociacionesUsuarioClientes(): Promise<{ usuarioId: string; clienteId: number; clienteNombre: string }[]> {
+    const { data, error } = await supabase
+      .from('usuario_clientes')
+      .select('usuarioId, clienteId, clientes:clientes(nombre)');
+    
+    if (error) {
+      throw new Error(error.message || 'Error al obtener marcas de usuarios');
+    }
+    
+    return (data || []).map((x: any) => ({
+      usuarioId: x.usuarioId,
+      clienteId: x.clienteId,
+      clienteNombre: x.clientes?.nombre || 'Marca Desconocida'
+    }));
+  },
+
+  async getMarcasPermitidasPorUsuario(usuarioId: string | number): Promise<number[]> {
+    const { data, error } = await supabase
+      .from('usuario_clientes')
+      .select('clienteId')
+      .eq('usuarioId', usuarioId);
+    
+    if (error) {
+      throw new Error(error.message || 'Error al obtener marcas permitidas');
+    }
+    
+    return (data || []).map((x: any) => x.clienteId);
+  },
+
+  async asignarMarcasAUsuario(usuarioId: string | number, clienteIds: number[]): Promise<void> {
+    const { error: deleteError } = await supabase
+      .from('usuario_clientes')
+      .delete()
+      .eq('usuarioId', usuarioId);
+    
+    if (deleteError) {
+      throw new Error(deleteError.message || 'Error al limpiar marcas asignadas');
+    }
+    
+    if (clienteIds.length === 0) return;
+    
+    const inserts = clienteIds.map(cid => ({
+      usuarioId,
+      clienteId: cid
+    }));
+    
+    const { error: insertError } = await supabase
+      .from('usuario_clientes')
+      .insert(inserts);
+    
+    if (insertError) {
+      throw new Error(insertError.message || 'Error al asignar marcas');
+    }
   },
 };

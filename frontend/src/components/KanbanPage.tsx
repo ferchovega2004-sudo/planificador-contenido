@@ -7,6 +7,16 @@ const KanbanPage: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
   
+  // Filtros de mes y año
+  const [mesFiltrado, setMesFiltrado] = useState<number | 'TODOS'>(new Date().getMonth());
+  const [anioFiltrado, setAnioFiltrado] = useState<number>(new Date().getFullYear());
+
+  const mesesNombres = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const anios = [2025, 2026, 2027, 2028];
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +59,15 @@ const KanbanPage: React.FC = () => {
 
   // Filtrado de publicaciones
   const publicacionesFiltradas = publicaciones.filter((pub) => {
-    if (clienteFiltrado === 'TODOS') return true;
-    return pub.clienteId === clienteFiltrado;
+    // Filtrar por cliente
+    if (clienteFiltrado !== 'TODOS' && pub.clienteId !== clienteFiltrado) return false;
+    
+    // Filtrar por mes y año
+    const fecha = new Date(pub.fechaProgramada);
+    if (mesFiltrado !== 'TODOS' && fecha.getMonth() !== mesFiltrado) return false;
+    if (fecha.getFullYear() !== anioFiltrado) return false;
+    
+    return true;
   });
 
   // Agrupar publicaciones por estado
@@ -155,6 +172,35 @@ const KanbanPage: React.FC = () => {
               {clientes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Mes */}
+          <div className="filter-select">
+            <select
+              value={mesFiltrado}
+              onChange={(e) => setMesFiltrado(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
+            >
+              <option value="TODOS">Todos los meses</option>
+              {mesesNombres.map((m, idx) => (
+                <option key={idx} value={idx}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Año */}
+          <div className="filter-select">
+            <select
+              value={anioFiltrado}
+              onChange={(e) => setAnioFiltrado(Number(e.target.value))}
+            >
+              {anios.map((y) => (
+                <option key={y} value={y}>
+                  {y}
                 </option>
               ))}
             </select>

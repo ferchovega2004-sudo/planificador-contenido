@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api, Usuario } from '../services/api';
+import { api, Usuario, Cliente } from '../services/api';
+import ConfirmDialog from './ConfirmDialog';
 
 const UsuariosPage: React.FC = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -10,7 +11,7 @@ const UsuariosPage: React.FC = () => {
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState<'ADMIN' | 'USER'>('USER');
+  const [rol, setRol] = useState<Usuario['rol']>('USER');
   const [creando, setCreando] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -19,12 +20,40 @@ const UsuariosPage: React.FC = () => {
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [cambiandoPass, setCambiandoPass] = useState(false);
 
+  // Estados para ConfirmDialog
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState<number | string | null>(null);
+
+  // Estados para marcas asignadas y Acompañante
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<number[]>([]);
+  const [marcasPermitidasMap, setMarcasPermitidasMap] = useState<Record<string, string[]>>({});
+  const [gestionarMarcasUser, setGestionarMarcasUser] = useState<Usuario | null>(null);
+  const [gestionarMarcasSeleccionadas, setGestionarMarcasSeleccionadas] = useState<number[]>([]);
+  const [guardandoMarcas, setGuardandoMarcas] = useState(false);
+
   const cargarUsuarios = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getUsuarios();
-      setUsuarios(data);
+      
+      const [usrData, clientesData, asociaciones] = await Promise.all([
+        api.getUsuarios(),
+        api.getClientes(),
+        api.getAsociacionesUsuarioClientes()
+      ]);
+      
+      setUsuarios(usrData);
+      setClientes(clientesData);
+      
+      const map: Record<string, string[]> = {};
+      asociaciones.forEach((asc) => {
+        if (!map[asc.usuarioId]) {
+          map[asc.usuarioId] = [];
+        }
+        map[asc.usuarioId].push(asc.clienteNombre);
+      });
+      setMarcasPermitidasMap(map);
     } catch (err: any) {
       setError(err.message || 'Error al cargar usuarios');
     } finally {
@@ -48,11 +77,15 @@ const UsuariosPage: React.FC = () => {
     setSuccessMsg(null);
 
     try {
-      await api.registrarUsuario({ nombre, username, password, rol });
+      const nuevoUsr = await api.registrarUsuario({ nombre, username, password, rol });
+      if (rol === 'ACOMPAÑANTE' && marcasSeleccionadas.length > 0) {
+        await api.asignarMarcasAUsuario(nuevoUsr.id, marcasSeleccionadas);
+      }
       setNombre('');
       setUsername('');
       setPassword('');
       setRol('USER');
+      setMarcasSeleccionadas([]);
       setSuccessMsg('Usuario creado exitosamente');
       cargarUsuarios();
     } catch (err: any) {
@@ -62,18 +95,52 @@ const UsuariosPage: React.FC = () => {
     }
   };
 
-  const handleEliminarUsuario = async (id: number | string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este usuario? (Soft delete)')) {
-      return;
+  const handleGestionarMarcasClick = async (usr: Usuario) => {
+    setGestionarMarcasUser(usr);
+    try {
+      const marcas = await api.getMarcasPermitidasPorUsuario(usr.id);
+      setGestionarMarcasSeleccionadas(marcas);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar marcas del usuario');
     }
+  };
 
+  const handleGuardarMarcasAsignadas = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gestionarMarcasUser) return;
+    setGuardandoMarcas(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await api.asignarMarcasAUsuario(gestionarMarcasUser.id, gestionarMarcasSeleccionadas);
+      setSuccessMsg(`Marcas de ${gestionarMarcasUser.nombre} actualizadas correctamente`);
+      setGestionarMarcasUser(null);
+      setGestionarMarcasSeleccionadas([]);
+      cargarUsuarios();
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar asignaciones de marca');
+    } finally {
+      setGuardandoMarcas(false);
+    }
+  };
+
+  const handleEliminarClick = (id: number | string) => {
+    setUsuarioAEliminar(id);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!usuarioAEliminar) return;
+    setShowConfirmDelete(false);
     try {
       setError(null);
-      await api.deleteUsuario(id);
+      await api.deleteUsuario(usuarioAEliminar);
       setSuccessMsg('Usuario eliminado correctamente');
+      setUsuarioAEliminar(null);
       cargarUsuarios();
     } catch (err: any) {
       setError(err.message || 'Error al eliminar usuario');
+      setUsuarioAEliminar(null);
     }
   };
 
@@ -141,14 +208,39 @@ const UsuariosPage: React.FC = () => {
                   <tr key={usr.id}>
                     <td>
                       <strong>{usr.nombre}</strong>
+                      {usr.rol === 'ACOMPAÑANTE' && (
+                        <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', marginTop: '4px' }}>
+                          Marcas permitidas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna'}
+                        </div>
+                      )}
                     </td>
                     <td>@{usr.username}</td>
                     <td>
-                      <span className={`badge ${usr.rol === 'ADMIN' ? 'badge-admin' : 'badge-user'}`}>
-                        {usr.rol === 'ADMIN' ? 'Administrador' : 'Usuario Operativo'}
+                      <span className={`badge ${
+                        usr.rol === 'ADMIN' 
+                          ? 'badge-admin' 
+                          : usr.rol === 'EDITOR'
+                          ? 'badge-pending'
+                          : usr.rol === 'ACOMPAÑANTE'
+                          ? 'badge-ready'
+                          : 'badge-user'
+                      }`}>
+                        {usr.rol === 'ADMIN' && 'Administrador'}
+                        {usr.rol === 'USER' && 'Usuario Operativo'}
+                        {usr.rol === 'EDITOR' && 'Editor (Kanban)'}
+                        {usr.rol === 'ACOMPAÑANTE' && 'Acompañante'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
+                      {usr.rol === 'ACOMPAÑANTE' && (
+                        <button
+                          onClick={() => handleGestionarMarcasClick(usr)}
+                          className="btn-action btn-secondary"
+                          style={{ marginRight: '8px', color: 'var(--neon-cyan)', borderColor: 'rgba(192, 132, 252, 0.4)' }}
+                        >
+                          Asignar Marcas
+                        </button>
+                      )}
                       <button
                         onClick={() => setCambiarPassUser(usr)}
                         className="btn-action btn-secondary"
@@ -157,7 +249,7 @@ const UsuariosPage: React.FC = () => {
                         Cambiar Contraseña
                       </button>
                       <button
-                        onClick={() => handleEliminarUsuario(usr.id)}
+                        onClick={() => handleEliminarClick(usr.id)}
                         className="btn-action btn-danger"
                       >
                         Eliminar
@@ -210,17 +302,56 @@ const UsuariosPage: React.FC = () => {
               />
             </div>
 
-            <div className="form-group">
+             <div className="form-group">
               <label>Rol asignado</label>
               <select
                 value={rol}
-                onChange={(e) => setRol(e.target.value as 'ADMIN' | 'USER')}
+                onChange={(e) => setRol(e.target.value as any)}
                 disabled={creando}
               >
-                <option value="USER">Operativo (Solo lectura/edición de publicaciones)</option>
+                <option value="USER">Operativo (Lectura/edición de publicaciones)</option>
                 <option value="ADMIN">Administrador (Control total del sistema)</option>
+                <option value="EDITOR">Editor (Acceso exclusivo a Flujo Kanban)</option>
+                <option value="ACOMPAÑANTE">Acompañante (Acceso exclusivo a Calendario de Marcas seleccionadas)</option>
               </select>
             </div>
+
+            {rol === 'ACOMPAÑANTE' && (
+              <div className="form-group" style={{ marginTop: '10px', marginBottom: '14px' }}>
+                <label>Marcas Permitidas</label>
+                <div style={{
+                  maxHeight: '140px',
+                  overflowY: 'auto',
+                  border: '1px solid #3b232c',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  backgroundColor: '#160e11'
+                }}>
+                  {clientes.map((c) => (
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer', color: '#cbd5e1' }}>
+                      <input
+                        type="checkbox"
+                        checked={marcasSeleccionadas.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setMarcasSeleccionadas([...marcasSeleccionadas, c.id]);
+                          } else {
+                            setMarcasSeleccionadas(marcasSeleccionadas.filter((id) => id !== c.id));
+                          }
+                        }}
+                      />
+                      {c.nombre}
+                    </label>
+                  ))}
+                  {clientes.length === 0 && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No hay marcas registradas.</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={creando}>
               {creando ? 'Creando...' : 'Crear Usuario'}
@@ -263,6 +394,84 @@ const UsuariosPage: React.FC = () => {
                 </button>
                 <button type="submit" className="btn-primary" disabled={cambiandoPass}>
                   {cambiandoPass ? 'Actualizando...' : 'Actualizar Contraseña'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        title="Eliminar Integrante de Equipo"
+        message="¿Estás seguro de que deseas eliminar este usuario? (Se realizará una desactivación lógica en el sistema)."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setShowConfirmDelete(false);
+          setUsuarioAEliminar(null);
+        }}
+        variant="danger"
+      />
+
+      {gestionarMarcasUser && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Gestionar Marcas Permitidas</h3>
+              <button className="close-btn" onClick={() => {
+                setGestionarMarcasUser(null);
+                setGestionarMarcasSeleccionadas([]);
+              }}>&times;</button>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>
+              Selecciona las marcas que <strong>{gestionarMarcasUser.nombre}</strong> puede visualizar y gestionar.
+            </p>
+            <form onSubmit={handleGuardarMarcasAsignadas} className="form">
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid #3b232c',
+                padding: '8px',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                backgroundColor: '#160e11',
+                marginBottom: '16px'
+              }}>
+                {clientes.map((c) => (
+                  <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#cbd5e1' }}>
+                    <input
+                      type="checkbox"
+                      checked={gestionarMarcasSeleccionadas.includes(c.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setGestionarMarcasSeleccionadas([...gestionarMarcasSeleccionadas, c.id]);
+                        } else {
+                          setGestionarMarcasSeleccionadas(gestionarMarcasSeleccionadas.filter(id => id !== c.id));
+                        }
+                      }}
+                    />
+                    {c.nombre}
+                  </label>
+                ))}
+              </div>
+              <div className="modal-footer" style={{ marginTop: '20px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setGestionarMarcasUser(null);
+                    setGestionarMarcasSeleccionadas([]);
+                  }}
+                  disabled={guardandoMarcas}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={guardandoMarcas}>
+                  {guardandoMarcas ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
             </form>

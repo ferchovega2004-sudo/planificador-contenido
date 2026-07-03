@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
 import EmptyState from './EmptyState';
@@ -11,6 +11,10 @@ const CalendarioPage: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para filtro de marcas y navegación fluida
+  const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
+  const isFirstMount = useRef(true);
 
   // Modal de Detalle
   const [selectedPub, setSelectedPub] = useState<Publicacion | null>(null);
@@ -74,9 +78,9 @@ const CalendarioPage: React.FC = () => {
       ? getMonthGridDates(fechaReferencia) 
       : getWeekGridDates(fechaReferencia);
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (silencioso = false) => {
     try {
-      setLoading(true);
+      if (!silencioso) setLoading(true);
       setError(null);
 
       // Calcular rango a consultar según el modo de vista actual
@@ -116,8 +120,18 @@ const CalendarioPage: React.FC = () => {
   };
 
   useEffect(() => {
-    cargarDatos();
+    if (isFirstMount.current) {
+      cargarDatos(false);
+      isFirstMount.current = false;
+    } else {
+      cargarDatos(true);
+    }
   }, [fechaReferencia, viewMode]);
+
+  const publicacionesFiltradas = publicaciones.filter((pub) => {
+    if (clienteFiltrado === 'TODOS') return true;
+    return pub.clienteId === clienteFiltrado;
+  });
 
   // Cambiar navegación de fecha
   const navegarAnterior = () => {
@@ -241,6 +255,21 @@ const CalendarioPage: React.FC = () => {
 
         {/* Controles de navegación y cambio de vista */}
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {/* Filtro por marca */}
+          <div className="filter-select">
+            <select
+              value={clienteFiltrado}
+              onChange={(e) => setClienteFiltrado(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
+            >
+              <option value="TODOS">Todas las marcas</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Navegación */}
           <div className="calendar-controls">
             <button onClick={navegarAnterior} className="btn-secondary" style={{ padding: '6px 12px' }}>
@@ -313,7 +342,7 @@ const CalendarioPage: React.FC = () => {
                 const esHoy = new Date().toDateString() === dia.toDateString();
 
                 // Filtrar publicaciones de este día específico
-                const publicacionesDia = publicaciones.filter((pub) => {
+                const publicacionesDia = publicacionesFiltradas.filter((pub) => {
                   const pubFechaStr = new Date(pub.fechaProgramada).toISOString().split('T')[0];
                   return pubFechaStr === fechaStr;
                 });
@@ -372,7 +401,7 @@ const CalendarioPage: React.FC = () => {
           {viewMode === 'list' && (
             <div className="card">
               <h2 className="card-title">Publicaciones del Mes</h2>
-              {publicaciones.length === 0 ? (
+              {publicacionesFiltradas.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                   No hay publicaciones programadas para este mes.
                 </div>
@@ -387,7 +416,7 @@ const CalendarioPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...publicaciones]
+                    {[...publicacionesFiltradas]
                       .sort((a, b) => new Date(a.fechaProgramada).getTime() - new Date(b.fechaProgramada).getTime())
                       .map((pub) => {
                         const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
