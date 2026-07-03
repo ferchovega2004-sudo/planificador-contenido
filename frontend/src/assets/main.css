@@ -84,6 +84,7 @@ body {
   font-weight: 800;
   background: linear-gradient(135deg, #d81b60 0%, #f48fb1 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: 0.5px;
 }
@@ -713,6 +714,7 @@ body {
   margin: 0 0 8px 0;
   background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -1080,6 +1082,7 @@ body {
   margin-bottom: 4px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
