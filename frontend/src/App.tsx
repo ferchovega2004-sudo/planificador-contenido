@@ -6,7 +6,7 @@ import ClientesPage from './components/ClientesPage';
 import UsuariosPage from './components/UsuariosPage';
 import ReportesPage from './components/ReportesPage';
 import { api, Usuario } from './services/api';
-import logo from './assets/logo.png';
+import logo from './assets/logo.jpg';
 
 function App(): React.JSX.Element {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -48,8 +48,8 @@ function App(): React.JSX.Element {
         <div className="sidebar-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', padding: '20px 14px' }}>
           <img src={logo} alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>Plan de Contenido</span>
-            <span className="sidebar-subtitle" style={{ fontSize: '9px', marginTop: '2px' }}>Gestión de Publicaciones</span>
+            <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>AETHERNET</span>
+            <span className="sidebar-subtitle" style={{ fontSize: '8px', marginTop: '2px' }}>MEDIA PRODUCTION GATEWAY</span>
           </div>
         </div>
 

@@ -74,7 +74,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {/* Lente principal */}
           <div className="portal-camera-lens">
             <div className="portal-lens-shine"></div>
-            <div className="portal-lens-brand">Media Core</div>
+            <div className="portal-lens-brand">Aethernet</div>
           </div>
         </div>
 
@@ -128,8 +128,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <div className="portal-bracket bracket-br"></div>
 
           <div className="portal-header">
-            <h2 className="portal-title">Crew Access Portal</h2>
-            <p className="portal-subtitle">Secure Production Environment</p>
+            <h2 className="portal-title">AETHERNET</h2>
+            <p className="portal-subtitle">Media Production Gateway</p>
           </div>
 
           {error && (
