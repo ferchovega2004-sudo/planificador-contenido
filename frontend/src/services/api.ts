@@ -332,6 +332,9 @@ export const api = {
     titulo: string;
     fechaProgramada: string;
     estado?: string;
+    guion?: string;
+    driveUrl?: string;
+    notas?: string;
   }): Promise<Publicacion> {
     const { data: resData, error } = await supabase
       .from('publicaciones')

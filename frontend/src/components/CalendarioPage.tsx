@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
 import EmptyState from './EmptyState';
+import ContextMenu from './ContextMenu';
 
 const CalendarioPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
@@ -150,6 +151,90 @@ const CalendarioPage: React.FC = () => {
   const enEdicionKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'EDICION').length;
   const terminadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'TERMINADO').length;
   const publicadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'PUBLICADO').length;
+
+  // Estado para el menú contextual
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pub: Publicacion } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, pub: Publicacion) => {
+    const currentUsr = api.getUsuarioActual();
+    if (currentUsr?.rol === 'ACOMPAÑANTE') return; // Acompañante no puede modificar
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, pub });
+  };
+
+  const handleMoverSiguienteMes = async (pub: Publicacion) => {
+    try {
+      const fecha = new Date(pub.fechaProgramada);
+      fecha.setMonth(fecha.getMonth() + 1);
+      await api.updatePublicacion(pub.id, { fechaProgramada: fecha.toISOString() });
+      cargarDatos(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al reprogramar al siguiente mes');
+    }
+  };
+
+  const handleCambiarEstado = async (pub: Publicacion, nuevoEstado: typeof pub.estado) => {
+    try {
+      await api.updatePublicacion(pub.id, { estado: nuevoEstado });
+      cargarDatos(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al cambiar el estado');
+    }
+  };
+
+  const handleDuplicarPublicacion = async (pub: Publicacion) => {
+    try {
+      await api.createPublicacion({
+        titulo: `${pub.titulo} (Copia)`,
+        clienteId: pub.clienteId,
+        fechaProgramada: pub.fechaProgramada,
+        estado: pub.estado,
+        guion: pub.guion || '',
+        driveUrl: pub.driveUrl || '',
+        notas: pub.notas || '',
+      });
+      cargarDatos(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al duplicar la publicación');
+    }
+  };
+
+  const handleEliminarPublicacion = async (pub: Publicacion) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la publicación "${pub.titulo}"?`)) {
+      try {
+        await api.deletePublicacion(pub.id);
+        cargarDatos(true);
+      } catch (err: any) {
+        setError(err.message || 'Error al eliminar la publicación');
+      }
+    }
+  };
+
+  const contextMenuOptions = contextMenu ? [
+    {
+      label: 'Mover al Siguiente Mes',
+      onClick: () => handleMoverSiguienteMes(contextMenu.pub)
+    },
+    {
+      label: 'Cambiar Estado',
+      subMenu: [
+        { label: 'Por Grabar', onClick: () => handleCambiarEstado(contextMenu.pub, 'POR_GRABAR') },
+        { label: 'En Edición', onClick: () => handleCambiarEstado(contextMenu.pub, 'EDICION') },
+        { label: 'Terminado', onClick: () => handleCambiarEstado(contextMenu.pub, 'TERMINADO') },
+        { label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }
+      ]
+    },
+    {
+      label: 'Duplicar Publicación',
+      onClick: () => handleDuplicarPublicacion(contextMenu.pub)
+    },
+    {
+      label: 'Eliminar Publicación',
+      className: 'delete',
+      divider: true,
+      onClick: () => handleEliminarPublicacion(contextMenu.pub)
+    }
+  ] : [];
 
   // Cambiar navegación de fecha
   const navegarAnterior = () => {
@@ -509,6 +594,7 @@ const CalendarioPage: React.FC = () => {
                           className={`calendar-pub-card ${classEstados[pub.estado]}`}
                           draggable
                           onDragStart={(e) => handleDragStart(e, pub.id)}
+                          onContextMenu={(e) => handleContextMenu(e, pub)}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedPub(pub);
@@ -571,6 +657,7 @@ const CalendarioPage: React.FC = () => {
                           <tr
                             key={pub.id}
                             style={{ cursor: 'pointer' }}
+                            onContextMenu={(e) => handleContextMenu(e, pub)}
                             onClick={() => setSelectedPub(pub)}
                           >
                             <td style={{ textTransform: 'capitalize' }}>{fechaFormateada}</td>
@@ -680,6 +767,14 @@ const CalendarioPage: React.FC = () => {
             setSelectedPub(null);
             cargarDatos();
           }}
+        />
+      )}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          options={contextMenuOptions}
         />
       )}
     </div>

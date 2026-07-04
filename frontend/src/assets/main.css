@@ -2181,5 +2181,20 @@ body {
   background-color: var(--surface-hover);
 }
 
+/* Context Menu CSS styles */
+.context-menu-item:hover {
+  background-color: var(--surface-hover);
+  color: var(--neon-cyan) !important;
+}
+
+.context-menu-item.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444 !important;
+}
+
+.submenu-parent:hover .submenu {
+  display: block !important;
+}
+
 
 

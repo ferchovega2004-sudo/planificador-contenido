@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
+import ContextMenu from './ContextMenu';
 
 const KanbanPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
   
-  // Filtros de mes y año
+  // Filtros de mes, año y semana
   const [mesFiltrado, setMesFiltrado] = useState<number | 'TODOS'>(new Date().getMonth());
   const [anioFiltrado, setAnioFiltrado] = useState<number>(new Date().getFullYear());
+  const [semanaFiltrada, setSemanaFiltrada] = useState<number | 'TODOS'>('TODOS');
 
   const mesesNombres = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
@@ -57,6 +59,34 @@ const KanbanPage: React.FC = () => {
     cargarDatos();
   }, []);
 
+  // Obtener semanas del mes para filtro dinámico
+  const getSemanasDelMes = (mes: number, anio: number) => {
+    const semanas = [];
+    const primerDia = new Date(anio, mes, 1);
+    const ultimoDia = new Date(anio, mes + 1, 0);
+
+    let actual = new Date(primerDia);
+    const dayOfWeek = actual.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    actual.setDate(actual.getDate() + diffToMonday);
+
+    while (actual <= ultimoDia) {
+      const inicioSemana = new Date(actual);
+      const finSemana = new Date(actual);
+      finSemana.setDate(finSemana.getDate() + 6);
+
+      semanas.push({
+        inicio: inicioSemana,
+        fin: finSemana,
+        label: `Semana del ${inicioSemana.getDate()} de ${mesesNombres[inicioSemana.getMonth()].substring(0, 3)} al ${finSemana.getDate()} de ${mesesNombres[finSemana.getMonth()].substring(0, 3)}`
+      });
+
+      actual.setDate(actual.getDate() + 7);
+    }
+
+    return semanas;
+  };
+
   // Filtrado de publicaciones
   const publicacionesFiltradas = publicaciones.filter((pub) => {
     // Filtrar por cliente
@@ -66,6 +96,19 @@ const KanbanPage: React.FC = () => {
     const fecha = new Date(pub.fechaProgramada);
     if (mesFiltrado !== 'TODOS' && fecha.getMonth() !== mesFiltrado) return false;
     if (fecha.getFullYear() !== anioFiltrado) return false;
+
+    // Filtrar por semana
+    if (semanaFiltrada !== 'TODOS' && mesFiltrado !== 'TODOS') {
+      const semanas = getSemanasDelMes(Number(mesFiltrado), anioFiltrado);
+      const sem = semanas[semanaFiltrada];
+      if (sem) {
+        const fComp = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()).getTime();
+        const iniComp = new Date(sem.inicio.getFullYear(), sem.inicio.getMonth(), sem.inicio.getDate()).getTime();
+        const finComp = new Date(sem.fin.getFullYear(), sem.fin.getMonth(), sem.fin.getDate()).getTime();
+        
+        if (fComp < iniComp || fComp > finComp) return false;
+      }
+    }
     
     return true;
   });
@@ -96,6 +139,90 @@ const KanbanPage: React.FC = () => {
       items: publicacionesFiltradas.filter((p) => p.estado === 'PUBLICADO')
     }
   };
+
+  // Estado para el menú contextual
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pub: Publicacion } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, pub: Publicacion) => {
+    const currentUsr = api.getUsuarioActual();
+    if (currentUsr?.rol === 'ACOMPAÑANTE') return; // Acompañante no puede modificar
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, pub });
+  };
+
+  const handleMoverSiguienteMes = async (pub: Publicacion) => {
+    try {
+      const fecha = new Date(pub.fechaProgramada);
+      fecha.setMonth(fecha.getMonth() + 1);
+      await api.updatePublicacion(pub.id, { fechaProgramada: fecha.toISOString() });
+      cargarDatos();
+    } catch (err: any) {
+      setError(err.message || 'Error al reprogramar al siguiente mes');
+    }
+  };
+
+  const handleCambiarEstado = async (pub: Publicacion, nuevoEstado: typeof pub.estado) => {
+    try {
+      await api.updatePublicacion(pub.id, { estado: nuevoEstado });
+      cargarDatos();
+    } catch (err: any) {
+      setError(err.message || 'Error al cambiar el estado');
+    }
+  };
+
+  const handleDuplicarPublicacion = async (pub: Publicacion) => {
+    try {
+      await api.createPublicacion({
+        titulo: `${pub.titulo} (Copia)`,
+        clienteId: pub.clienteId,
+        fechaProgramada: pub.fechaProgramada,
+        estado: pub.estado,
+        guion: pub.guion || '',
+        driveUrl: pub.driveUrl || '',
+        notas: pub.notas || '',
+      });
+      cargarDatos();
+    } catch (err: any) {
+      setError(err.message || 'Error al duplicar la publicación');
+    }
+  };
+
+  const handleEliminarPublicacion = async (pub: Publicacion) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la publicación "${pub.titulo}"?`)) {
+      try {
+        await api.deletePublicacion(pub.id);
+        cargarDatos();
+      } catch (err: any) {
+        setError(err.message || 'Error al eliminar la publicación');
+      }
+    }
+  };
+
+  const contextMenuOptions = contextMenu ? [
+    {
+      label: 'Mover al Siguiente Mes',
+      onClick: () => handleMoverSiguienteMes(contextMenu.pub)
+    },
+    {
+      label: 'Cambiar Estado',
+      subMenu: [
+        { label: 'Por Grabar', onClick: () => handleCambiarEstado(contextMenu.pub, 'POR_GRABAR') },
+        { label: 'En Edición', onClick: () => handleCambiarEstado(contextMenu.pub, 'EDICION') },
+        { label: 'Terminado', onClick: () => handleCambiarEstado(contextMenu.pub, 'TERMINADO') },
+        { label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }
+      ]
+    },
+    {
+      label: 'Duplicar Publicación',
+      onClick: () => handleDuplicarPublicacion(contextMenu.pub)
+    },
+    {
+      label: 'Eliminar Publicación',
+      className: 'delete',
+      divider: true,
+      onClick: () => handleEliminarPublicacion(contextMenu.pub)
+    }
+  ] : [];
 
   // Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, id: number) => {
@@ -188,7 +315,10 @@ const KanbanPage: React.FC = () => {
           <div className="filter-select">
             <select
               value={mesFiltrado}
-              onChange={(e) => setMesFiltrado(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
+              onChange={(e) => {
+                setMesFiltrado(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value));
+                setSemanaFiltrada('TODOS');
+              }}
             >
               <option value="TODOS">Todos los meses</option>
               {mesesNombres.map((m, idx) => (
@@ -203,7 +333,10 @@ const KanbanPage: React.FC = () => {
           <div className="filter-select">
             <select
               value={anioFiltrado}
-              onChange={(e) => setAnioFiltrado(Number(e.target.value))}
+              onChange={(e) => {
+                setAnioFiltrado(Number(e.target.value));
+                setSemanaFiltrada('TODOS');
+              }}
             >
               {anios.map((y) => (
                 <option key={y} value={y}>
@@ -212,6 +345,23 @@ const KanbanPage: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {/* Filtro por Semana */}
+          {mesFiltrado !== 'TODOS' && (
+            <div className="filter-select">
+              <select
+                value={semanaFiltrada}
+                onChange={(e) => setSemanaFiltrada(e.target.value === 'TODOS' ? 'TODOS' : Number(e.target.value))}
+              >
+                <option value="TODOS">Todas las semanas</option>
+                {getSemanasDelMes(Number(mesFiltrado), anioFiltrado).map((sem, idx) => (
+                  <option key={idx} value={idx}>
+                    {sem.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button onClick={() => setMostrarCrear(true)} className="btn-primary">
             + Programar Publicación
@@ -329,6 +479,7 @@ const KanbanPage: React.FC = () => {
                         className={`kanban-card card-${pub.estado.toLowerCase().replace('_', '-')}`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, pub.id)}
+                        onContextMenu={(e) => handleContextMenu(e, pub)}
                         onClick={() => setSelectedPub(pub)}
                       >
                         <span className="kanban-card-tag">{pub.cliente.nombre}</span>
@@ -448,6 +599,14 @@ const KanbanPage: React.FC = () => {
             setSelectedPub(null);
             cargarDatos();
           }}
+        />
+      )}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          options={contextMenuOptions}
         />
       )}
     </div>
