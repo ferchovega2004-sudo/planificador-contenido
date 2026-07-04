@@ -79,12 +79,6 @@ export const api = {
       console.warn('Error al obtener perfil extendido:', profileError.message);
     }
 
-    // Verificar si el usuario ACOMPAÑANTE tiene acceso desactivado
-    if (profile?.rol === 'ACOMPAÑANTE' && profile?.activo === false) {
-      await supabase.auth.signOut();
-      throw new Error('Tu acceso ha sido desactivado por el administrador. Contacta a tu supervisor.');
-    }
-
     const usuario: Usuario = {
       id: data.user.id,
       username: profile?.username || data.user.email || username,

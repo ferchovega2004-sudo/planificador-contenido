@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api, Publicacion, Cliente } from '../services/api';
+import { api, Publicacion, Cliente, Usuario } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
 import EmptyState from './EmptyState';
 import ContextMenu from './ContextMenu';
+
+const puedeEditarCalendario = (usr: Usuario | null): boolean => {
+  if (!usr) return false;
+  if (usr.rol === 'ADMIN' || usr.rol === 'USER') return true;
+  if (usr.rol === 'ACOMPAÑANTE' && usr.activo !== false) return true;
+  return false;
+};
 
 const CalendarioPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
@@ -166,7 +173,7 @@ const CalendarioPage: React.FC = () => {
 
   const handleContextMenu = (e: React.MouseEvent, pub: Publicacion) => {
     const currentUsr = api.getUsuarioActual();
-    if (currentUsr?.rol === 'ACOMPAÑANTE' || currentUsr?.rol === 'EDITOR') return; // Solo lectura para estos roles
+    if (!puedeEditarCalendario(currentUsr)) return;
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, pub });
   };
@@ -282,7 +289,7 @@ const CalendarioPage: React.FC = () => {
   const handleDrop = async (e: React.DragEvent, targetFechaStr: string) => {
     e.preventDefault();
     const currentUsr = api.getUsuarioActual();
-    if (currentUsr?.rol === 'ACOMPAÑANTE' || currentUsr?.rol === 'EDITOR') return; // Solo lectura para estos roles
+    if (!puedeEditarCalendario(currentUsr)) return;
 
     const idStr = e.dataTransfer.getData('text/plain');
     if (!idStr) return;
@@ -600,7 +607,7 @@ const CalendarioPage: React.FC = () => {
                     }}
                     onDoubleClick={() => {
                       const usr = api.getUsuarioActual();
-                      if (usr?.rol === 'ACOMPAÑANTE' || usr?.rol === 'EDITOR') return;
+                      if (!puedeEditarCalendario(usr)) return;
                       setCrearCeldaInfo({ fecha: fechaStr });
                     }}
                   >
@@ -613,7 +620,7 @@ const CalendarioPage: React.FC = () => {
                         <div
                           key={pub.id}
                           className={`calendar-pub-card ${classEstados[pub.estado]}`}
-                          draggable
+                          draggable={puedeEditarCalendario(api.getUsuarioActual())}
                           onDragStart={(e) => handleDragStart(e, pub.id)}
                           onContextMenu={(e) => handleContextMenu(e, pub)}
                           onClick={(e) => {
@@ -676,7 +683,7 @@ const CalendarioPage: React.FC = () => {
 
                     {(() => {
                       const usr = api.getUsuarioActual();
-                      if (usr?.rol === 'ACOMPAÑANTE' || usr?.rol === 'EDITOR') return null;
+                      if (!puedeEditarCalendario(usr)) return null;
                       return (
                         <div
                           className="cell-quick-add"

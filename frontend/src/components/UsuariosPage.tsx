@@ -241,6 +241,11 @@ const UsuariosPage: React.FC = () => {
                       {usr.rol !== 'ADMIN' && (
                         <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', marginTop: '4px' }}>
                           Marcas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna asignada'}
+                          {usr.rol === 'ACOMPAÑANTE' && (
+                            <span style={{ color: usr.activo !== false ? '#10b981' : '#f59e0b', marginLeft: '8px', fontWeight: 'bold' }}>
+                              ({usr.activo !== false ? '✍️ Puede Editar' : '👁️ Solo Lectura'})
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -268,16 +273,16 @@ const UsuariosPage: React.FC = () => {
                             try {
                               const nuevoEstado = !usr.activo;
                               await api.toggleAccesoUsuario(usr.id, nuevoEstado);
-                              setSuccessMsg(`Acceso de ${usr.nombre} ${nuevoEstado ? 'activado' : 'desactivado'}`);
+                              setSuccessMsg(`Permiso de edición de ${usr.nombre} ${nuevoEstado ? 'habilitado' : 'deshabilitado'}`);
                               cargarUsuarios();
                             } catch (err: any) {
-                              setError(err.message || 'Error al cambiar acceso');
+                              setError(err.message || 'Error al cambiar permiso');
                             }
                           }}
-                          className={`btn-action ${usr.activo !== false ? 'btn-danger' : 'btn-primary'}`}
-                          style={{ marginRight: '8px', fontSize: '11px' }}
+                          className={`btn-action ${usr.activo !== false ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ marginRight: '8px', fontSize: '11px', border: usr.activo !== false ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(192, 132, 252, 0.4)' }}
                         >
-                          {usr.activo !== false ? '🔒 Desactivar' : '🔓 Activar'}
+                          {usr.activo !== false ? '🔒 Cambiar a Solo Lectura' : '✍️ Permitir Edición'}
                         </button>
                       )}
                       {usr.rol !== 'ADMIN' && (
