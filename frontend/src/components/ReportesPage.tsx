@@ -13,9 +13,19 @@ const ReportesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Estados para vista previa en vivo
   const [previewData, setPreviewData] = useState<Publicacion[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [columnasVisibles, setColumnasVisibles] = useState({
+    marca: true,
+    fecha: true,
+    plataforma: true,
+    titulo: true,
+    estado: true,
+    responsable: true,
+    guion: true,
+    material: true,
+    notas: true
+  });
 
   // Calcular las fechas por defecto al cargar o cambiar el tipo de rango
   useEffect(() => {
@@ -121,6 +131,15 @@ const ReportesPage: React.FC = () => {
         'TERMINADO': 'Terminado',
         'PUBLICADO': 'Publicado'
       };
+      const thMarca = columnasVisibles.marca ? `<th style="width: 10%;">Marca</th>` : '';
+      const thFecha = columnasVisibles.fecha ? `<th style="width: 12%;">Fecha / Hora</th>` : '';
+      const thPlataforma = columnasVisibles.plataforma ? `<th style="width: 10%;">Plataforma</th>` : '';
+      const thTitulo = columnasVisibles.titulo ? `<th style="width: 15%;">Título</th>` : '';
+      const thEstado = columnasVisibles.estado ? `<th style="width: 10%;">Estado</th>` : '';
+      const thResponsable = columnasVisibles.responsable ? `<th style="width: 12%;">Responsable</th>` : '';
+      const thGuion = columnasVisibles.guion ? `<th style="width: 13%;">Guión (Extracto)</th>` : '';
+      const thMaterial = columnasVisibles.material ? `<th style="width: 8%;">Material</th>` : '';
+      const thNotas = columnasVisibles.notas ? `<th style="width: 10%;">Notas</th>` : '';
 
       const filasHTML = publicaciones.map((pub: any) => {
         const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
@@ -137,17 +156,27 @@ const ReportesPage: React.FC = () => {
         const responsableSafe = pub.responsable?.nombre || 'Sin asignar';
         const plataformaSafe = pub.plataforma || 'OTRO';
 
+        const tdMarca = columnasVisibles.marca ? `<td><strong>${pub.cliente.nombre}</strong></td>` : '';
+        const tdFecha = columnasVisibles.fecha ? `<td>${fechaFormateada}</td>` : '';
+        const tdPlataforma = columnasVisibles.plataforma ? `<td><strong>${plataformaSafe}</strong></td>` : '';
+        const tdTitulo = columnasVisibles.titulo ? `<td>${tituloSafe}</td>` : '';
+        const tdEstado = columnasVisibles.estado ? `<td><span class="badge badge-${pub.estado.toLowerCase()}">${estadoTexto}</span></td>` : '';
+        const tdResponsable = columnasVisibles.responsable ? `<td>${responsableSafe}</td>` : '';
+        const tdGuion = columnasVisibles.guion ? `<td class="text-muted">${guionSafe}</td>` : '';
+        const tdMaterial = columnasVisibles.material ? `<td>${driveSafe}</td>` : '';
+        const tdNotas = columnasVisibles.notas ? `<td class="text-muted">${notasSafe}</td>` : '';
+
         return `
           <tr>
-            <td><strong>${pub.cliente.nombre}</strong></td>
-            <td>${fechaFormateada}</td>
-            <td><strong>${plataformaSafe}</strong></td>
-            <td>${tituloSafe}</td>
-            <td><span class="badge badge-${pub.estado.toLowerCase()}">${estadoTexto}</span></td>
-            <td>${responsableSafe}</td>
-            <td class="text-muted">${guionSafe}</td>
-            <td>${driveSafe}</td>
-            <td class="text-muted">${notasSafe}</td>
+            ${tdMarca}
+            ${tdFecha}
+            ${tdPlataforma}
+            ${tdTitulo}
+            ${tdEstado}
+            ${tdResponsable}
+            ${tdGuion}
+            ${tdMaterial}
+            ${tdNotas}
           </tr>
         `;
       }).join('');
@@ -257,15 +286,15 @@ const ReportesPage: React.FC = () => {
             <table>
               <thead>
                 <tr>
-                  <th style="width: 10%;">Marca</th>
-                  <th style="width: 12%;">Fecha / Hora</th>
-                  <th style="width: 10%;">Plataforma</th>
-                  <th style="width: 15%;">Título</th>
-                  <th style="width: 10%;">Estado</th>
-                  <th style="width: 12%;">Responsable</th>
-                  <th style="width: 13%;">Guión (Extracto)</th>
-                  <th style="width: 8%;">Material</th>
-                  <th style="width: 10%;">Notas</th>
+                  ${thMarca}
+                  ${thFecha}
+                  ${thPlataforma}
+                  ${thTitulo}
+                  ${thEstado}
+                  ${thResponsable}
+                  ${thGuion}
+                  ${thMaterial}
+                  ${thNotas}
                 </tr>
               </thead>
               <tbody>
@@ -401,6 +430,61 @@ const ReportesPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Configurar Columnas Visibles */}
+            <div className="form-group" style={{ marginTop: '16px' }}>
+              <label style={{ marginBottom: '8px', display: 'block' }}>Columnas Visibles en PDF</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                padding: '10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                {Object.keys(columnasVisibles).map((colKey) => {
+                  const labelMap: Record<string, string> = {
+                    marca: 'Marca',
+                    fecha: 'Fecha/Hora',
+                    plataforma: 'Plataforma',
+                    titulo: 'Título',
+                    estado: 'Estado',
+                    responsable: 'Responsable',
+                    guion: 'Guión',
+                    material: 'Material',
+                    notas: 'Notas'
+                  };
+                  return (
+                    <label 
+                      key={colKey} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        fontWeight: 'normal', 
+                        fontSize: '11px', 
+                        cursor: 'pointer', 
+                        color: 'var(--text-secondary)' 
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={columnasVisibles[colKey as keyof typeof columnasVisibles]}
+                        onChange={(e) => {
+                          setColumnasVisibles((prev) => ({
+                            ...prev,
+                            [colKey]: e.target.checked
+                          }));
+                        }}
+                        style={{ accentColor: 'var(--neon-pink)', width: '13px', height: '13px' }}
+                      />
+                      {labelMap[colKey]}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', textAlign: 'right' }}>
               <button 
                 type="submit" 
@@ -503,12 +587,15 @@ const ReportesPage: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '1.5px solid #d1d5db' }}>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Marca</th>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Fecha / Hora</th>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Plataforma</th>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Título / Post</th>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Estado</th>
-                      <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Responsable</th>
+                      {columnasVisibles.marca && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Marca</th>}
+                      {columnasVisibles.fecha && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Fecha / Hora</th>}
+                      {columnasVisibles.plataforma && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Plataforma</th>}
+                      {columnasVisibles.titulo && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Título / Post</th>}
+                      {columnasVisibles.estado && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Estado</th>}
+                      {columnasVisibles.responsable && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Responsable</th>}
+                      {columnasVisibles.guion && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Guión</th>}
+                      {columnasVisibles.material && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Material</th>}
+                      {columnasVisibles.notas && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Notas</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -520,23 +607,37 @@ const ReportesPage: React.FC = () => {
                         PUBLICADO: { label: 'Publicado', bg: '#f3e8ff', text: '#7c3aed' }
                       };
                       const est = mappedEstados[pub.estado] || { label: pub.estado, bg: '#f3f4f6', text: '#374151' };
+                      const guionTexto = pub.guion ? pub.guion.replace(/<[^>]*>/g, ' ').substring(0, 80) + (pub.guion.length > 80 ? '...' : '') : 'Sin guion';
                       
                       return (
                         <tr key={pub.id} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', fontWeight: '700', color: '#111827' }}>{pub.cliente.nombre}</td>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#374151' }}>
-                            {new Date(pub.fechaProgramada).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} {pub.horaPublicacion ? `@ ${pub.horaPublicacion}` : ''}
-                          </td>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#4b5563' }}>{pub.plataforma || 'OTRO'}</td>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#1f2937', fontWeight: '500' }}>{pub.titulo}</td>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb' }}>
-                            <span style={{ display: 'inline-block', padding: '1px 4px', borderRadius: '3px', fontSize: '7.5px', fontWeight: '700', textTransform: 'uppercase', backgroundColor: est.bg, color: est.text }}>
-                              {est.label}
-                            </span>
-                          </td>
-                          <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#4b5563' }}>
-                            {pub.responsable?.nombre || 'Sin asignar'}
-                          </td>
+                          {columnasVisibles.marca && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', fontWeight: '700', color: '#111827' }}>{pub.cliente.nombre}</td>}
+                          {columnasVisibles.fecha && (
+                            <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#374151' }}>
+                              {new Date(pub.fechaProgramada).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} {pub.horaPublicacion ? `@ ${pub.horaPublicacion}` : ''}
+                            </td>
+                          )}
+                          {columnasVisibles.plataforma && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#4b5563' }}>{pub.plataforma || 'OTRO'}</td>}
+                          {columnasVisibles.titulo && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#1f2937', fontWeight: '500' }}>{pub.titulo}</td>}
+                          {columnasVisibles.estado && (
+                            <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb' }}>
+                              <span style={{ display: 'inline-block', padding: '1px 4px', borderRadius: '3px', fontSize: '7.5px', fontWeight: '700', textTransform: 'uppercase', backgroundColor: est.bg, color: est.text }}>
+                                {est.label}
+                              </span>
+                            </td>
+                          )}
+                          {columnasVisibles.responsable && (
+                            <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#4b5563' }}>
+                              {pub.responsable?.nombre || 'Sin asignar'}
+                            </td>
+                          )}
+                          {columnasVisibles.guion && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#6b7280', fontSize: '8px' }}>{guionTexto}</td>}
+                          {columnasVisibles.material && (
+                            <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb' }}>
+                              {pub.driveUrl ? <a href={pub.driveUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '8px' }}>Ver material</a> : <span style={{ color: '#9ca3af', fontSize: '8px' }}>Sin link</span>}
+                            </td>
+                          )}
+                          {columnasVisibles.notas && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#6b7280', fontSize: '8px' }}>{pub.notas ? pub.notas.substring(0, 80) + (pub.notas.length > 80 ? '...' : '') : 'Sin notas'}</td>}
                         </tr>
                       );
                     })}

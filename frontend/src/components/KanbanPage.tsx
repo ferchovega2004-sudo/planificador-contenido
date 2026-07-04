@@ -48,6 +48,7 @@ const KanbanPage: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
   const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const platformColors: Record<string, { bg: string; text: string; label: string }> = {
     INSTAGRAM: { bg: 'rgba(219, 144, 251, 0.15)', text: '#ec4899', label: 'Instagram' },
@@ -157,6 +158,14 @@ const KanbanPage: React.FC = () => {
         
         if (fComp < iniComp || fComp > finComp) return false;
       }
+    }
+
+    // Filtrar por búsqueda de texto
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      const matchTitulo = pub.titulo.toLowerCase().includes(term);
+      const matchNotas = pub.notas ? pub.notas.toLowerCase().includes(term) : false;
+      if (!matchTitulo && !matchNotas) return false;
     }
     
     return true;
@@ -413,6 +422,31 @@ const KanbanPage: React.FC = () => {
             </div>
           )}
 
+          {/* Búsqueda de publicaciones */}
+          <div className="search-bar" style={{ width: '220px', padding: '6px 12px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por título..."
+              style={{ fontSize: '12px' }}
+            />
+            {searchTerm && (
+              <span 
+                onClick={() => setSearchTerm('')} 
+                style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', marginLeft: '4px', fontWeight: 'bold' }}
+                title="Limpiar búsqueda"
+              >
+                &times;
+              </span>
+            )}
+          </div>
+
           <button onClick={() => setMostrarCrear(true)} className="btn-primary">
             + Programar Publicación
           </button>
@@ -610,12 +644,26 @@ const KanbanPage: React.FC = () => {
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               {pub.driveUrl && (
-                                <span className="kanban-card-link-icon" title="Tiene link a Drive" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-muted)' }}>
+                                <a
+                                  href={pub.driveUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="kanban-card-link-icon"
+                                  title="Abrir carpeta de Drive"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    color: 'var(--neon-cyan)',
+                                    transition: 'color 0.2s ease',
+                                    cursor: 'pointer'
+                                  }}
+                                >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                                   </svg>
-                                </span>
+                                </a>
                               )}
                               {pub.responsable && (
                                 <div

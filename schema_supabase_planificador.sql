@@ -42,18 +42,20 @@ ALTER TABLE public.publicaciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 
 -- 5. Crear Políticas de Acceso (Lectura/Escritura para usuarios autenticados)
-CREATE POLICY "Permitir todo a usuarios autenticados en clientes"
+-- NOTA: El filtro de soft-delete (deletedAt IS NULL) se aplica en la capa de aplicación,
+-- NO en la política RLS, para evitar bloqueos en INSERT.
+CREATE POLICY "authenticated_full_access_clientes"
     ON public.clientes
     FOR ALL
     TO authenticated
-    USING ("deletedAt" IS NULL)
+    USING (true)
     WITH CHECK (true);
 
-CREATE POLICY "Permitir todo a usuarios autenticados en publicaciones"
+CREATE POLICY "authenticated_full_access_publicaciones"
     ON public.publicaciones
     FOR ALL
     TO authenticated
-    USING ("deletedAt" IS NULL)
+    USING (true)
     WITH CHECK (true);
 
 CREATE POLICY "Permitir lectura de usuarios a miembros autenticados"
