@@ -70,6 +70,13 @@ const KanbanPage: React.FC = () => {
     return true;
   });
 
+  // Métricas para los KPIs
+  const totalKpis = publicacionesFiltradas.length;
+  const porGrabarKpis = publicacionesFiltradas.filter(p => p.estado === 'POR_GRABAR').length;
+  const enEdicionKpis = publicacionesFiltradas.filter(p => p.estado === 'EDICION').length;
+  const terminadasKpis = publicacionesFiltradas.filter(p => p.estado === 'TERMINADO').length;
+  const publicadasKpis = publicacionesFiltradas.filter(p => p.estado === 'PUBLICADO').length;
+
   // Agrupar publicaciones por estado
   const columnas = {
     POR_GRABAR: {
@@ -212,6 +219,79 @@ const KanbanPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Fila de Métricas / KPIs */}
+      <div className="kpi-row" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '16px',
+        marginBottom: '20px'
+      }}>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Planificadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff' }}>{totalKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Por Grabar</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#f59e0b' }}>{porGrabarKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #06b6d4',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>En Edición</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#06b6d4' }}>{enEdicionKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #10b981',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terminadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>{terminadasKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #ec4899',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
+        </div>
+      </div>
+
       {error && (
         <div className="alert alert-error" style={{ marginBottom: '16px' }}>
           <span>{error}</span>
@@ -246,7 +326,7 @@ const KanbanPage: React.FC = () => {
                     return (
                       <div
                         key={pub.id}
-                        className="kanban-card"
+                        className={`kanban-card card-${pub.estado.toLowerCase().replace('_', '-')}`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, pub.id)}
                         onClick={() => setSelectedPub(pub)}

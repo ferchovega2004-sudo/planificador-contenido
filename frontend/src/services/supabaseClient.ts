@@ -10,3 +10,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+// Cliente sin persistencia para registrar usuarios sin alterar la sesión del Administrador
+export const crearClienteRegistro = () => {
+  return createClient(supabaseUrl || '', supabaseAnonKey || '', {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+};

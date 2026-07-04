@@ -139,6 +139,18 @@ const CalendarioPage: React.FC = () => {
     return pub.clienteId === clienteFiltrado;
   });
 
+  // Métricas para los KPIs (Filtradas para el mes y año de la fecha de referencia para no contar los días de los límites de cuadrícula)
+  const publicacionesKpisFiltradas = publicacionesFiltradas.filter((pub) => {
+    const f = new Date(pub.fechaProgramada);
+    return f.getMonth() === fechaReferencia.getMonth() && f.getFullYear() === fechaReferencia.getFullYear();
+  });
+
+  const totalKpis = publicacionesKpisFiltradas.length;
+  const porGrabarKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'POR_GRABAR').length;
+  const enEdicionKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'EDICION').length;
+  const terminadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'TERMINADO').length;
+  const publicadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'PUBLICADO').length;
+
   // Cambiar navegación de fecha
   const navegarAnterior = () => {
     const nueva = new Date(fechaReferencia);
@@ -362,6 +374,79 @@ const CalendarioPage: React.FC = () => {
               Lista
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Fila de Métricas / KPIs */}
+      <div className="kpi-row" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '16px',
+        marginBottom: '20px'
+      }}>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Planificadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff' }}>{totalKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Por Grabar</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#f59e0b' }}>{porGrabarKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #06b6d4',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>En Edición</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#06b6d4' }}>{enEdicionKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #10b981',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terminadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>{terminadasKpis}</span>
+        </div>
+        <div className="kpi-card" style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: '4px solid #ec4899',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
         </div>
       </div>
 

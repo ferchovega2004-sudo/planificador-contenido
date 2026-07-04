@@ -1266,10 +1266,10 @@ body {
   font-size: 11px;
 }
 
-.card-por-grabar { border-left: 3px solid #d97706; }
-.card-edicion { border-left: 3px solid #2563eb; }
-.card-terminado { border-left: 3px solid #059669; }
-.card-publicado { border-left: 3px solid #7c3aed; }
+.card-por-grabar { border-left: 4px solid #f59e0b !important; }
+.card-edicion { border-left: 4px solid #06b6d4 !important; }
+.card-terminado { border-left: 4px solid #10b981 !important; }
+.card-publicado { border-left: 4px solid #ec4899 !important; }
 
 .cell-quick-add {
   position: absolute;

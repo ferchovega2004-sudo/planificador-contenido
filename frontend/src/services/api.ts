@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, crearClienteRegistro } from './supabaseClient';
 
 export interface Usuario {
   id: number | string;
@@ -34,17 +34,32 @@ export interface Publicacion {
 export const api = {
   // 1. Autenticación & Usuarios
   async login(username: string, password: string): Promise<{ token: string; usuario: Usuario }> {
-    // Mapear username a email por defecto en Supabase Auth si no contiene @
-    const email = username.includes('@') ? username : `${username}@planificador.com`;
+    const cleanUsername = username.toLowerCase().trim();
+    const emailTransformado = cleanUsername.includes('@') 
+      ? cleanUsername.replace('@', '_at_') + '@planificador.com'
+      : `${cleanUsername}@planificador.com`;
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+    let authResult = await supabase.auth.signInWithPassword({
+      email: emailTransformado,
       password,
     });
-    
-    if (error) {
-      throw new Error(error.message || 'Error al iniciar sesión');
+
+    // Si falla y el username ingresado contiene un '@', reintentar con el correo original tal cual (fallback para usuarios antiguos)
+    if (authResult.error && cleanUsername.includes('@')) {
+      const fallbackResult = await supabase.auth.signInWithPassword({
+        email: cleanUsername,
+        password,
+      });
+      if (!fallbackResult.error) {
+        authResult = fallbackResult;
+      }
     }
+
+    if (authResult.error) {
+      throw new Error(authResult.error.message || 'Error al iniciar sesión');
+    }
+
+    const { data } = authResult;
 
     // Buscar el perfil extendido en la tabla pública usuarios
     const { data: profile, error: profileError } = await supabase
@@ -60,9 +75,9 @@ export const api = {
 
     const usuario: Usuario = {
       id: data.user.id,
-      username: data.user.email || username,
+      username: profile?.username || data.user.email || username,
       nombre: profile?.nombre || 'Miembro del Equipo',
-      rol: (profile?.rol as 'ADMIN' | 'USER') || 'USER',
+      rol: (profile?.rol as any) || 'USER',
     };
 
     localStorage.setItem('token', data.session?.access_token || '');
@@ -91,17 +106,24 @@ export const api = {
   },
 
   async registrarUsuario(data: Omit<Usuario, 'id'> & { password?: string }): Promise<Usuario> {
-    const email = data.username.includes('@') ? data.username : `${data.username}@planificador.com`;
+    const cleanUsername = data.username.toLowerCase().trim();
+    const email = cleanUsername.includes('@')
+      ? cleanUsername.replace('@', '_at_') + '@planificador.com'
+      : `${cleanUsername}@planificador.com`;
     const password = data.password || 'Planificador123!';
     
+    // Usar cliente sin persistencia de sesión para evitar que el Administrador sea deslogueado
+    const registroClient = crearClienteRegistro();
+    
     // Crear el usuario en Supabase Auth
-    const { data: signUpData, error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await registroClient.auth.signUp({
       email,
       password,
       options: {
         data: {
           nombre: data.nombre,
           rol: data.rol,
+          username: data.username, // Guardar el nombre de usuario original
         },
       },
     });
@@ -448,5 +470,25 @@ export const api = {
     if (insertError) {
       throw new Error(insertError.message || 'Error al asignar marcas');
     }
+  },
+
+  async obtenerPerfilActual(id: string | number): Promise<Usuario | null> {
+    const { data: profile, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', id)
+      .is('deletedAt', null)
+      .single();
+
+    if (error) {
+      return null;
+    }
+
+    return {
+      id: profile.id,
+      username: profile.username,
+      nombre: profile.nombre || 'Miembro del Equipo',
+      rol: profile.rol as any,
+    };
   },
 };

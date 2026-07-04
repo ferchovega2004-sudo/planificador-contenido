@@ -12,7 +12,7 @@ function App(): React.JSX.Element {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [activeTab, setActiveTab] = useState<'calendario' | 'kanban' | 'clientes' | 'usuarios' | 'reportes'>('calendario');
 
-  const verificarSesion = () => {
+  const verificarSesion = async () => {
     const usr = api.getUsuarioActual();
     const token = localStorage.getItem('token');
     if (usr && token) {
@@ -22,6 +22,16 @@ function App(): React.JSX.Element {
         setActiveTab('kanban');
       } else {
         setActiveTab('calendario');
+      }
+
+      try {
+        const perfilActualizado = await api.obtenerPerfilActual(usr.id);
+        if (perfilActualizado) {
+          setUsuario(perfilActualizado);
+          localStorage.setItem('usuario', JSON.stringify(perfilActualizado));
+        }
+      } catch (err) {
+        console.warn('No se pudo sincronizar el perfil con Supabase:', err);
       }
     } else {
       setUsuario(null);
@@ -70,14 +80,93 @@ function App(): React.JSX.Element {
         </div>
 
         {/* Info del usuario logueado */}
-        <div className="user-profile-badge">
-          <div className="user-avatar">
+        <div className="user-profile-badge" style={{
+          position: 'relative',
+          background: usuario.rol === 'ADMIN' ? 'rgba(216, 27, 96, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+          border: usuario.rol === 'ADMIN' 
+            ? '1px solid rgba(236, 64, 122, 0.25)' 
+            : '1px solid #352329',
+          boxShadow: usuario.rol === 'ADMIN' 
+            ? '0 0 15px rgba(236, 64, 122, 0.1)' 
+            : 'none',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          margin: '10px 14px',
+          borderRadius: '8px'
+        }}>
+          <div className="user-avatar" style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: usuario.rol === 'ADMIN' 
+              ? 'linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-cyan) 100%)' 
+              : 'linear-gradient(135deg, #475569 0%, #1e293b 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '800',
+            fontSize: '12px',
+            color: '#ffffff',
+            boxShadow: usuario.rol === 'ADMIN' 
+              ? '0 0 10px rgba(236, 64, 122, 0.4)' 
+              : 'none'
+          }}>
             {usuario.nombre.substring(0, 2).toUpperCase()}
           </div>
-          <div className="user-info">
-            <span className="user-name">{usuario.nombre}</span>
-            <span className="user-role">
-              {usuario.rol === 'ADMIN' ? 'Administrador' : 'Operativo'}
+          <div className="user-info" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span className="user-name" style={{
+              fontWeight: '700',
+              fontSize: '12.5px',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              {usuario.nombre}
+              {usuario.rol === 'ADMIN' && (
+                <span title="Administrador" style={{ fontSize: '11px', display: 'inline-flex' }}>👑</span>
+              )}
+            </span>
+            <span className="user-role" style={{
+              color: usuario.rol === 'ADMIN' ? 'var(--neon-pink)' : 'var(--neon-cyan)',
+              fontSize: '8.5px',
+              fontWeight: '800',
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              marginTop: '3px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              {usuario.rol === 'ADMIN' ? (
+                <>
+                  <span style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--neon-pink)',
+                    display: 'inline-block',
+                    boxShadow: '0 0 6px var(--neon-pink)'
+                  }} />
+                  Administrador
+                </>
+              ) : (
+                <>
+                  <span style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--neon-cyan)',
+                    display: 'inline-block',
+                    boxShadow: '0 0 6px var(--neon-cyan)'
+                  }} />
+                  {usuario.rol === 'USER' && 'Operativo'}
+                  {usuario.rol === 'EDITOR' && 'Editor'}
+                  {usuario.rol === 'ACOMPAÑANTE' && 'Acompañante'}
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -155,7 +244,21 @@ function App(): React.JSX.Element {
                 <line x1="20" y1="8" x2="20" y2="14"></line>
                 <line x1="23" y1="11" x2="17" y2="11"></line>
               </svg>
-              Equipo (Usuarios)
+              Administración de Equipo
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '8px',
+                fontWeight: '800',
+                backgroundColor: 'rgba(236, 72, 153, 0.15)',
+                color: 'var(--neon-pink)',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Admin
+              </span>
             </div>
           )}
         </nav>
