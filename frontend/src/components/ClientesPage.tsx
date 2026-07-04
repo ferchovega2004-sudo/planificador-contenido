@@ -36,6 +36,7 @@ const ClientesPage: React.FC = () => {
 
   useEffect(() => {
     cargarClientes();
+    setPaginaActual(1);
   }, []);
 
   const handleCrear = async (e: React.FormEvent) => {
@@ -85,7 +86,7 @@ const ClientesPage: React.FC = () => {
     setSuccess(null);
     try {
       await api.deleteCliente(clienteAEliminar);
-      setSuccess('Marca eliminada correctamente');
+      setSuccess('Marca enviada a la papelera correctamente');
       setClienteAEliminar(null);
       cargarClientes().then(() => {
         const totalItems = clientes.length - 1;
@@ -100,15 +101,16 @@ const ClientesPage: React.FC = () => {
     }
   };
 
-  const totalPaginas = Math.ceil(clientes.length / itemsPorPagina);
-  const clientesPaginados = clientes.slice(
+  const activeList = clientes;
+  const totalPaginas = Math.ceil(activeList.length / itemsPorPagina);
+  const clientesPaginados = activeList.slice(
     (paginaActual - 1) * itemsPorPagina,
     paginaActual * itemsPorPagina
   );
 
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Gestión de Clientes (Marcas)</h1>
           <p className="page-subtitle">Registra y edita los nombres de las marcas y negocios con los que trabajas</p>
@@ -130,54 +132,58 @@ const ClientesPage: React.FC = () => {
       <div className="split-layout">
         {/* Lista de Marcas */}
         <div className="split-main card">
-          <h2 className="card-title">Marcas Registradas</h2>
+          <h2 className="card-title">
+            Marcas Registradas
+          </h2>
           {loading ? (
             <div className="loading-state">Cargando marcas...</div>
-          ) : clientes.length === 0 ? (
-            <div className="empty-state">No hay marcas registradas. ¡Registra la primera en el formulario lateral!</div>
+          ) : activeList.length === 0 ? (
+            <div className="empty-state">
+              No hay marcas registradas. ¡Registra la primera en el formulario lateral!
+            </div>
           ) : (
             <>
               <table className="table">
                 <thead>
-                <tr>
-                  <th style={{ width: '10%' }}>ID</th>
-                  <th style={{ width: '25%' }}>Nombre de la Marca</th>
-                  <th>Contenido / Trabajo</th>
-                  <th style={{ textAlign: 'right', width: '20%' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientesPaginados.map((c) => (
-                  <tr key={c.id}>
-                    <td>#{c.id}</td>
-                    <td>
-                      <strong>{c.nombre}</strong>
-                    </td>
-                    <td className="text-muted" style={{ fontSize: '12px', whiteSpace: 'pre-wrap' }}>
-                      {c.contenido || 'Sin contenido especificado'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        onClick={() => {
-                          setEditCliente(c);
-                          setEditNombre(c.nombre);
-                          setEditContenido(c.contenido || '');
-                        }}
-                        className="btn-action btn-secondary"
-                        style={{ marginRight: '8px' }}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleEliminarClick(c.id)}
-                        className="btn-action btn-danger"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
+                  <tr>
+                    <th style={{ width: '10%' }}>ID</th>
+                    <th style={{ width: '25%' }}>Nombre de la Marca</th>
+                    <th>Contenido / Trabajo</th>
+                    <th style={{ textAlign: 'right', width: '20%' }}>Acciones</th>
                   </tr>
-                ))}
-              </tbody>
+                </thead>
+                <tbody>
+                  {clientesPaginados.map((c) => (
+                    <tr key={c.id}>
+                      <td>#{c.id}</td>
+                      <td>
+                        <strong>{c.nombre}</strong>
+                      </td>
+                      <td className="text-muted" style={{ fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                        {c.contenido || 'Sin contenido especificado'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          onClick={() => {
+                            setEditCliente(c);
+                            setEditNombre(c.nombre);
+                            setEditContenido(c.contenido || '');
+                          }}
+                          className="btn-action btn-secondary"
+                          style={{ marginRight: '8px' }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleEliminarClick(c.id)}
+                          className="btn-action btn-danger"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
 
               {totalPaginas > 1 && (
@@ -307,7 +313,7 @@ const ClientesPage: React.FC = () => {
       <ConfirmDialog
         isOpen={showConfirmDelete}
         title="Eliminar Marca / Cliente"
-        message="¿Estás seguro de que deseas eliminar esta marca? Todas las publicaciones asociadas podrían verse afectadas."
+        message="¿Estás seguro de que deseas enviar esta marca a la papelera? Todas las publicaciones asociadas podrían verse afectadas."
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         onConfirm={handleConfirmDelete}

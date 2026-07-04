@@ -15,6 +15,10 @@ const UsuariosPage: React.FC = () => {
   const [creando, setCreando] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Password visibility & strength states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
   // Estados para cambiar contraseña
   const [cambiarPassUser, setCambiarPassUser] = useState<Usuario | null>(null);
   const [nuevaContrasena, setNuevaContrasena] = useState('');
@@ -31,6 +35,25 @@ const UsuariosPage: React.FC = () => {
   const [gestionarMarcasUser, setGestionarMarcasUser] = useState<Usuario | null>(null);
   const [gestionarMarcasSeleccionadas, setGestionarMarcasSeleccionadas] = useState<number[]>([]);
   const [guardandoMarcas, setGuardandoMarcas] = useState(false);
+
+
+
+  const getPasswordStrength = (pass: string) => {
+    if (pass.length < 6) return { label: 'Muy corta', color: '#ef4444' };
+    const hasLetters = /[a-zA-Z]/.test(pass);
+    const hasNums = /\d/.test(pass);
+    const hasSpecial = /[^a-zA-Z0-9]/.test(pass);
+    
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (hasLetters) score++;
+    if (hasNums) score++;
+    if (hasSpecial) score++;
+    
+    if (score <= 1) return { label: 'Débil ⚠️', color: '#f59e0b' };
+    if (score === 2 || score === 3) return { label: 'Media 👍', color: '#3b82f6' };
+    return { label: 'Fuerte 💪', color: '#10b981' };
+  };
 
   const cargarUsuarios = async () => {
     try {
@@ -86,6 +109,7 @@ const UsuariosPage: React.FC = () => {
       setPassword('');
       setRol('USER');
       setMarcasSeleccionadas([]);
+      setShowPassword(false);
       setSuccessMsg('Usuario creado exitosamente');
       cargarUsuarios();
     } catch (err: any) {
@@ -135,7 +159,7 @@ const UsuariosPage: React.FC = () => {
     try {
       setError(null);
       await api.deleteUsuario(usuarioAEliminar);
-      setSuccessMsg('Usuario eliminado correctamente');
+      setSuccessMsg('Usuario enviado a la papelera correctamente');
       setUsuarioAEliminar(null);
       cargarUsuarios();
     } catch (err: any) {
@@ -143,7 +167,6 @@ const UsuariosPage: React.FC = () => {
       setUsuarioAEliminar(null);
     }
   };
-
   const handleCambiarPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cambiarPassUser || !nuevaContrasena) return;
@@ -157,6 +180,7 @@ const UsuariosPage: React.FC = () => {
       setSuccessMsg(`Contraseña de ${cambiarPassUser.nombre} actualizada correctamente`);
       setCambiarPassUser(null);
       setNuevaContrasena('');
+      setShowChangePassword(false);
     } catch (err: any) {
       setError(err.message || 'Error al cambiar contraseña');
     } finally {
@@ -164,9 +188,11 @@ const UsuariosPage: React.FC = () => {
     }
   };
 
+  const listToRender = usuarios;
+
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Gestión del Equipo</h1>
           <p className="page-subtitle">Administra los usuarios y los roles de tu equipo de planificación</p>
@@ -188,11 +214,15 @@ const UsuariosPage: React.FC = () => {
       <div className="split-layout">
         {/* Lista de Usuarios */}
         <div className="split-main card">
-          <h2 className="card-title">Usuarios Activos</h2>
+          <h2 className="card-title">
+            Usuarios Activos
+          </h2>
           {loading ? (
             <div className="loading-state">Cargando usuarios...</div>
-          ) : usuarios.length === 0 ? (
-            <div className="empty-state">No hay usuarios registrados</div>
+          ) : listToRender.length === 0 ? (
+            <div className="empty-state">
+              No hay usuarios registrados
+            </div>
           ) : (
             <table className="table">
               <thead>
@@ -204,7 +234,7 @@ const UsuariosPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((usr) => (
+                {listToRender.map((usr) => (
                   <tr key={usr.id}>
                     <td>
                       <strong>{usr.nombre}</strong>
@@ -289,17 +319,45 @@ const UsuariosPage: React.FC = () => {
                 disabled={creando}
               />
             </div>
-
+            
             <div className="form-group">
               <label>Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                required
-                disabled={creando}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  disabled={creando}
+                  style={{ paddingRight: '36px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                    padding: 0
+                  }}
+                >
+                  {showPassword ? '👁️' : '🙈'}
+                </button>
+              </div>
+              {password && (
+                <div style={{ marginTop: '6px', fontSize: '10.5px' }}>
+                  Fuerza: <span style={{ fontWeight: '700', color: getPasswordStrength(password).color }}>
+                    {getPasswordStrength(password).label}
+                  </span>
+                </div>
+              )}
             </div>
 
              <div className="form-group">
@@ -366,7 +424,11 @@ const UsuariosPage: React.FC = () => {
           <div className="modal-content" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
               <h3>Cambiar Contraseña</h3>
-              <button className="close-btn" onClick={() => setCambiarPassUser(null)}>&times;</button>
+              <button className="close-btn" onClick={() => {
+                setCambiarPassUser(null);
+                setNuevaContrasena('');
+                setShowChangePassword(false);
+              }}>&times;</button>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>
               Estás asignando una nueva contraseña para <strong>{cambiarPassUser.nombre}</strong>.
@@ -374,20 +436,52 @@ const UsuariosPage: React.FC = () => {
             <form onSubmit={handleCambiarPassword} className="form">
               <div className="form-group">
                 <label>Nueva Contraseña</label>
-                <input
-                  type="password"
-                  value={nuevaContrasena}
-                  onChange={(e) => setNuevaContrasena(e.target.value)}
-                  placeholder="Ingrese nueva contraseña"
-                  required
-                  disabled={cambiandoPass}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showChangePassword ? "text" : "password"}
+                    value={nuevaContrasena}
+                    onChange={(e) => setNuevaContrasena(e.target.value)}
+                    placeholder="Ingrese nueva contraseña"
+                    required
+                    disabled={cambiandoPass}
+                    style={{ paddingRight: '36px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowChangePassword(!showChangePassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      fontSize: '14px',
+                      padding: 0
+                    }}
+                  >
+                    {showChangePassword ? '👁️' : '🙈'}
+                  </button>
+                </div>
+                {nuevaContrasena && (
+                  <div style={{ marginTop: '6px', fontSize: '10.5px' }}>
+                    Fuerza: <span style={{ fontWeight: '700', color: getPasswordStrength(nuevaContrasena).color }}>
+                      {getPasswordStrength(nuevaContrasena).label}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="modal-footer" style={{ marginTop: '20px' }}>
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => setCambiarPassUser(null)}
+                  onClick={() => {
+                    setCambiarPassUser(null);
+                    setNuevaContrasena('');
+                    setShowChangePassword(false);
+                  }}
                   disabled={cambiandoPass}
                 >
                   Cancelar
@@ -404,8 +498,8 @@ const UsuariosPage: React.FC = () => {
       <ConfirmDialog
         isOpen={showConfirmDelete}
         title="Eliminar Integrante de Equipo"
-        message="¿Estás seguro de que deseas eliminar este usuario? (Se realizará una desactivación lógica en el sistema)."
-        confirmLabel="Eliminar"
+        message="¿Estás seguro de que deseas desactivar este usuario? Se enviará a la papelera y perderá el acceso temporalmente."
+        confirmLabel="Desactivar"
         cancelLabel="Cancelar"
         onConfirm={handleConfirmDelete}
         onCancel={() => {

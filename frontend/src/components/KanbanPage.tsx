@@ -3,11 +3,60 @@ import { api, Publicacion, Cliente } from '../services/api';
 import DetallePublicacionModal from './DetallePublicacionModal';
 import ContextMenu from './ContextMenu';
 
+const renderPlatformIcon = (plataforma: string) => {
+  switch (plataforma) {
+    case 'INSTAGRAM':
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+      );
+    case 'TIKTOK':
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+        </svg>
+      );
+    case 'SHORTS':
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+      );
+    case 'FACEBOOK':
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+          <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+        </svg>
+      );
+    default:
+      return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      );
+  }
+};
+
 const KanbanPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
-  
+  const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
+
+  const platformColors: Record<string, { bg: string; text: string; label: string }> = {
+    INSTAGRAM: { bg: 'rgba(219, 144, 251, 0.15)', text: '#ec4899', label: 'Instagram' },
+    TIKTOK: { bg: 'rgba(0, 0, 0, 0.3)', text: '#00f2fe', label: 'TikTok' },
+    SHORTS: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: 'Shorts' },
+    FACEBOOK: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', label: 'Facebook' },
+    OTRO: { bg: 'rgba(255, 255, 255, 0.08)', text: '#cbd5e1', label: 'Otro' }
+  };
+
   // Filtros de mes, año y semana
   const [mesFiltrado, setMesFiltrado] = useState<number | 'TODOS'>(new Date().getMonth());
   const [anioFiltrado, setAnioFiltrado] = useState<number>(new Date().getFullYear());
@@ -235,6 +284,7 @@ const KanbanPage: React.FC = () => {
 
   const handleDrop = async (e: React.DragEvent, nuevoEstado: 'POR_GRABAR' | 'EDICION' | 'TERMINADO' | 'PUBLICADO') => {
     e.preventDefault();
+    setDraggedOverCol(null);
     const idStr = e.dataTransfer.getData('text/plain');
     if (!idStr) return;
 
@@ -452,64 +502,151 @@ const KanbanPage: React.FC = () => {
         <div className="loading-state">Cargando tablero...</div>
       ) : (
         <div className="kanban-board">
-          {Object.entries(columnas).map(([estadoKey, col]) => (
-            <div
-              key={estadoKey}
-              className="kanban-column"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, estadoKey as any)}
-            >
-              <div className="kanban-column-header">
-                <h3 className="kanban-column-title">{col.titulo}</h3>
-                <span className="kanban-badge">{col.items.length}</span>
-              </div>
-              <div className="kanban-column-body">
-                {col.items.length === 0 ? (
-                  <div className="kanban-empty-zone">Arrastra aquí</div>
-                ) : (
-                  col.items.map((pub) => {
-                    const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short'
-                    });
-                    return (
-                      <div
-                        key={pub.id}
-                        className={`kanban-card card-${pub.estado.toLowerCase().replace('_', '-')}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, pub.id)}
-                        onContextMenu={(e) => handleContextMenu(e, pub)}
-                        onClick={() => setSelectedPub(pub)}
-                      >
-                        <span className="kanban-card-tag">{pub.cliente.nombre}</span>
-                        <h4 className="kanban-card-title">{pub.titulo}</h4>
-                        <div className="kanban-card-footer">
-                          <span className="kanban-card-date">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
-                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                              <line x1="16" y1="2" x2="16" y2="6"></line>
-                              <line x1="8" y1="2" x2="8" y2="6"></line>
-                              <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            {fechaFormateada}
-                          </span>
-                          {pub.driveUrl && (
-                            <span className="kanban-card-link-icon" title="Tiene link a Drive" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          {Object.entries(columnas).map(([estadoKey, col]) => {
+            const colAccentColors: Record<string, string> = {
+              POR_GRABAR: '#f59e0b',
+              EDICION: '#06b6d4',
+              TERMINADO: '#10b981',
+              PUBLICADO: '#ec4899'
+            };
+            const isDraggedOver = draggedOverCol === estadoKey;
+
+            return (
+              <div
+                key={estadoKey}
+                className={`kanban-column ${isDraggedOver ? 'drag-over' : ''}`}
+                onDragOver={handleDragOver}
+                onDragEnter={() => setDraggedOverCol(estadoKey)}
+                onDragLeave={() => setDraggedOverCol(null)}
+                onDrop={(e) => handleDrop(e, estadoKey as any)}
+              >
+                <div 
+                  className="kanban-column-header" 
+                  style={{ 
+                    borderTop: `3px solid ${colAccentColors[estadoKey]}`,
+                    borderBottom: '1.5px solid rgba(192, 132, 252, 0.15)',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px'
+                  }}
+                >
+                  <h3 className="kanban-column-title" style={{ fontSize: '13px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: colAccentColors[estadoKey] }}>
+                    {col.titulo}
+                  </h3>
+                  <span 
+                    className="kanban-badge" 
+                    style={{ 
+                      backgroundColor: `${colAccentColors[estadoKey]}15`,
+                      color: colAccentColors[estadoKey],
+                      border: `1px solid ${colAccentColors[estadoKey]}33`,
+                      padding: '2px 8px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: '800'
+                    }}
+                  >
+                    {col.items.length}
+                  </span>
+                </div>
+                <div className="kanban-column-body">
+                  {col.items.length === 0 ? (
+                    <div className="kanban-empty-zone">Arrastra aquí</div>
+                  ) : (
+                    col.items.map((pub) => {
+                      const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short'
+                      });
+                      return (
+                        <div
+                          key={pub.id}
+                          className={`kanban-card card-${pub.estado.toLowerCase().replace('_', '-')}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, pub.id)}
+                          onContextMenu={(e) => handleContextMenu(e, pub)}
+                          onClick={() => setSelectedPub(pub)}
+                        >
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                            <span className="kanban-card-tag">{pub.cliente.nombre}</span>
+                            {pub.plataforma && platformColors[pub.plataforma] && (
+                              <span
+                                style={{
+                                  fontSize: '9px',
+                                  fontWeight: '800',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: platformColors[pub.plataforma].bg,
+                                  color: platformColors[pub.plataforma].text,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                  border: `1px solid ${platformColors[pub.plataforma].text}33`,
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                {renderPlatformIcon(pub.plataforma)}
+                                {platformColors[pub.plataforma].label}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="kanban-card-title">{pub.titulo}</h4>
+                          <div className="kanban-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                            <span className="kanban-card-date">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
                               </svg>
+                              {fechaFormateada}
+                              {pub.horaPublicacion && (
+                                <span style={{ marginLeft: '6px', color: 'var(--neon-cyan)', fontWeight: '700' }}>
+                                  ⏰ {pub.horaPublicacion}
+                                </span>
+                              )}
                             </span>
-                          )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {pub.driveUrl && (
+                                <span className="kanban-card-link-icon" title="Tiene link a Drive" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-muted)' }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                  </svg>
+                                </span>
+                              )}
+                              {pub.responsable && (
+                                <div
+                                  title={`Responsable: ${pub.responsable.nombre}`}
+                                  style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, var(--cyber-blue) 0%, var(--neon-cyan) 100%)',
+                                    color: '#000000',
+                                    fontSize: '8px',
+                                    fontWeight: '800',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 0 5px rgba(6, 182, 212, 0.4)'
+                                  }}
+                                >
+                                  {pub.responsable.nombre.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

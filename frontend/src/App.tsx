@@ -5,12 +5,13 @@ import KanbanPage from './components/KanbanPage';
 import ClientesPage from './components/ClientesPage';
 import UsuariosPage from './components/UsuariosPage';
 import ReportesPage from './components/ReportesPage';
+import PapeleraTab from './components/PapeleraTab';
 import { api, Usuario } from './services/api';
 import logo from './assets/logo.jpg';
 
 function App(): React.JSX.Element {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [activeTab, setActiveTab] = useState<'calendario' | 'kanban' | 'clientes' | 'usuarios' | 'reportes'>('calendario');
+  const [activeTab, setActiveTab] = useState<'calendario' | 'kanban' | 'clientes' | 'usuarios' | 'reportes' | 'papelera'>('calendario');
 
   const verificarSesion = async () => {
     const usr = api.getUsuarioActual();
@@ -261,6 +262,36 @@ function App(): React.JSX.Element {
               </span>
             </div>
           )}
+
+          {/* Papelera de Recuperación (Solo visible para ADMIN) */}
+          {usuario.rol === 'ADMIN' && (
+            <div
+              className={`sidebar-item ${activeTab === 'papelera' ? 'active' : ''}`}
+              onClick={() => setActiveTab('papelera')}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+              Papelera General
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '8px',
+                fontWeight: '800',
+                backgroundColor: 'rgba(236, 72, 153, 0.15)',
+                color: 'var(--neon-pink)',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Admin
+              </span>
+            </div>
+          )}
         </nav>
         
         <div className="sidebar-footer" style={{ borderTop: '1px solid #3b232c', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
@@ -283,6 +314,7 @@ function App(): React.JSX.Element {
         {activeTab === 'clientes' && <ClientesPage />}
         {activeTab === 'usuarios' && usuario.rol === 'ADMIN' && <UsuariosPage />}
         {activeTab === 'reportes' && <ReportesPage />}
+        {activeTab === 'papelera' && usuario.rol === 'ADMIN' && <PapeleraTab />}
       </main>
     </div>
   );

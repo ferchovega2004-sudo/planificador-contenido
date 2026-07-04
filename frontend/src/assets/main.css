@@ -629,10 +629,21 @@ body {
   transition: all 0.2s ease;
 }
 
+@keyframes pulse-neon {
+  0%, 100% {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.3), inset 0 0 10px rgba(192, 132, 252, 0.15);
+  }
+  50% {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), inset 0 0 15px rgba(99, 102, 241, 0.3);
+  }
+}
+
 .kanban-column.drag-over {
-  border-color: var(--neon-cyan);
-  background-color: var(--surface-hover);
-  box-shadow: 0 0 15px rgba(192, 132, 252, 0.15);
+  border: 2px dashed var(--neon-cyan) !important;
+  background-color: rgba(192, 132, 252, 0.05) !important;
+  animation: pulse-neon 1.2s infinite ease-in-out;
 }
 
 .kanban-column-header {
@@ -1568,8 +1579,8 @@ body {
 .calendar-grid-day-cell {
   min-height: 120px;
   padding: 8px;
-  border-right: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid rgba(192, 132, 252, 0.22);
+  border-bottom: 1px solid rgba(192, 132, 252, 0.22);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1579,6 +1590,12 @@ body {
 
 .calendar-grid-day-cell:hover {
   background-color: rgba(255, 255, 255, 0.01);
+}
+
+.calendar-grid-day-cell.drag-over {
+  background-color: rgba(192, 132, 252, 0.1) !important;
+  border: 1.5px dashed var(--neon-cyan) !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25) inset;
 }
 
 .calendar-grid-day-cell.other-month {

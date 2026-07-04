@@ -31,6 +31,15 @@ const CalendarioPage: React.FC = () => {
   const [nuevoTitulo, setNuevoTitulo] = useState('');
   const [nuevoClienteId, setNuevoClienteId] = useState<number | ''>('');
   const [creando, setCreando] = useState(false);
+  const [draggedOverDate, setDraggedOverDate] = useState<string | null>(null);
+
+  const platformColors: Record<string, { bg: string; text: string; label: string }> = {
+    INSTAGRAM: { bg: 'rgba(219, 144, 251, 0.15)', text: '#ec4899', label: 'Instagram' },
+    TIKTOK: { bg: 'rgba(0, 0, 0, 0.3)', text: '#00f2fe', label: 'TikTok' },
+    SHORTS: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: 'Shorts' },
+    FACEBOOK: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', label: 'Facebook' },
+    OTRO: { bg: 'rgba(255, 255, 255, 0.08)', text: '#cbd5e1', label: 'Otro' }
+  };
 
   // Mapeo de días de la semana (Domingo a Sábado)
   const diasSemanaNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -272,6 +281,9 @@ const CalendarioPage: React.FC = () => {
 
   const handleDrop = async (e: React.DragEvent, targetFechaStr: string) => {
     e.preventDefault();
+    const currentUsr = api.getUsuarioActual();
+    if (currentUsr?.rol === 'ACOMPAÑANTE') return; // Acompañante no puede modificar
+
     const idStr = e.dataTransfer.getData('text/plain');
     if (!idStr) return;
 
@@ -578,9 +590,14 @@ const CalendarioPage: React.FC = () => {
                 return (
                   <div
                     key={idx}
-                    className={`calendar-grid-day-cell ${esOtroMes ? 'other-month' : ''} ${esHoy ? 'today' : ''}`}
+                    className={`calendar-grid-day-cell ${esOtroMes ? 'other-month' : ''} ${esHoy ? 'today' : ''} ${draggedOverDate === fechaStr ? 'drag-over' : ''}`}
                     onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, fechaStr)}
+                    onDragEnter={() => setDraggedOverDate(fechaStr)}
+                    onDragLeave={() => setDraggedOverDate(null)}
+                    onDrop={(e) => {
+                      setDraggedOverDate(null);
+                      handleDrop(e, fechaStr);
+                    }}
                     onDoubleClick={() => setCrearCeldaInfo({ fecha: fechaStr })}
                   >
                     <div className="calendar-grid-day-header">
@@ -600,11 +617,54 @@ const CalendarioPage: React.FC = () => {
                             setSelectedPub(pub);
                           }}
                         >
-                          <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--neon-pink)', marginBottom: '2px' }}>
-                            {pub.cliente.nombre}
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: '2px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--neon-pink)' }}>
+                              {pub.cliente.nombre}
+                            </span>
+                            {pub.plataforma && platformColors[pub.plataforma] && (
+                              <span
+                                style={{
+                                  fontSize: '7px',
+                                  fontWeight: '800',
+                                  padding: '0px 3px',
+                                  borderRadius: '2px',
+                                  backgroundColor: platformColors[pub.plataforma].bg,
+                                  color: platformColors[pub.plataforma].text,
+                                  textTransform: 'uppercase',
+                                  border: `1px solid ${platformColors[pub.plataforma].text}22`
+                                }}
+                              >
+                                {pub.plataforma.substring(0, 3)}
+                              </span>
+                            )}
                           </div>
-                          <div className="pub-card-title" style={{ fontSize: '11px', margin: 0 }}>
+                          <div className="pub-card-title" style={{ fontSize: '10px', margin: '2px 0 4px', fontWeight: '600', lineHeight: '1.2' }}>
                             {pub.titulo}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                            <span style={{ fontSize: '8px', color: 'var(--neon-cyan)', fontWeight: '700' }}>
+                              {pub.horaPublicacion ? `⏰ ${pub.horaPublicacion}` : ''}
+                            </span>
+                            {pub.responsable && (
+                              <div
+                                title={`Responsable: ${pub.responsable.nombre}`}
+                                style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  background: 'linear-gradient(135deg, var(--cyber-blue) 0%, var(--neon-cyan) 100%)',
+                                  color: '#000000',
+                                  fontSize: '7px',
+                                  fontWeight: '800',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: '0 0 3px rgba(6, 182, 212, 0.4)'
+                                }}
+                              >
+                                {pub.responsable.nombre.substring(0, 2).toUpperCase()}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

@@ -180,6 +180,37 @@ export const api = {
     }
   },
 
+  async getUsuariosEliminados(): Promise<Usuario[]> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .not('deletedAt', 'is', null)
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message || 'Error al obtener usuarios eliminados');
+    }
+
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      nombre: u.nombre,
+      rol: u.rol,
+      createdAt: u.createdAt,
+    }));
+  },
+
+  async restaurarUsuario(id: number | string): Promise<void> {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ deletedAt: null })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al restaurar usuario');
+    }
+  },
+
   async cambiarPassword(usuarioId: number | string, nuevaContrasena: string): Promise<void> {
     const currentUsr = this.getUsuarioActual();
     if (currentUsr && currentUsr.id === usuarioId) {
@@ -274,6 +305,36 @@ export const api = {
 
     if (error) {
       throw new Error(error.message || 'Error al eliminar marca');
+    }
+  },
+
+  async getClientesEliminados(): Promise<Cliente[]> {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .not('deletedAt', 'is', null)
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message || 'Error al obtener marcas eliminadas');
+    }
+
+    return (data || []).map((c: any) => ({
+      id: c.id,
+      nombre: c.nombre,
+      contenido: c.contenido,
+      createdAt: c.createdAt,
+    }));
+  },
+
+  async restaurarCliente(id: number): Promise<void> {
+    const { error } = await supabase
+      .from('clientes')
+      .update({ deletedAt: null })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al restaurar marca');
     }
   },
 
