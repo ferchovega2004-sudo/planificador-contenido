@@ -173,7 +173,7 @@ function App(): React.JSX.Element {
         </div>
         
         <nav className="sidebar-menu">
-          {(usuario.rol === 'ADMIN' || usuario.rol === 'USER' || usuario.rol === 'ACOMPAÑANTE') && (
+          {(usuario.rol === 'ADMIN' || usuario.rol === 'USER' || usuario.rol === 'EDITOR' || usuario.rol === 'ACOMPAÑANTE') && (
             <div
               className={`sidebar-item ${activeTab === 'calendario' ? 'active' : ''}`}
               onClick={() => setActiveTab('calendario')}

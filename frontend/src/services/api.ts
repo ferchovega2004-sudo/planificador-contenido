@@ -5,6 +5,7 @@ export interface Usuario {
   username: string;
   nombre: string;
   rol: 'ADMIN' | 'USER' | 'EDITOR' | 'ACOMPAÑANTE';
+  activo?: boolean;
   createdAt?: string;
 }
 
@@ -78,11 +79,18 @@ export const api = {
       console.warn('Error al obtener perfil extendido:', profileError.message);
     }
 
+    // Verificar si el usuario ACOMPAÑANTE tiene acceso desactivado
+    if (profile?.rol === 'ACOMPAÑANTE' && profile?.activo === false) {
+      await supabase.auth.signOut();
+      throw new Error('Tu acceso ha sido desactivado por el administrador. Contacta a tu supervisor.');
+    }
+
     const usuario: Usuario = {
       id: data.user.id,
       username: profile?.username || data.user.email || username,
       nombre: profile?.nombre || 'Miembro del Equipo',
       rol: (profile?.rol as any) || 'USER',
+      activo: profile?.activo !== false,
     };
 
     localStorage.setItem('token', data.session?.access_token || '');
@@ -164,6 +172,7 @@ export const api = {
       username: u.username,
       nombre: u.nombre,
       rol: u.rol,
+      activo: u.activo !== false,
       createdAt: u.createdAt,
     }));
   },
@@ -196,6 +205,7 @@ export const api = {
       username: u.username,
       nombre: u.nombre,
       rol: u.rol,
+      activo: u.activo !== false,
       createdAt: u.createdAt,
     }));
   },
@@ -236,7 +246,7 @@ export const api = {
       .select('*')
       .is('deletedAt', null);
 
-    if (usr && usr.rol === 'ACOMPAÑANTE') {
+    if (usr && usr.rol !== 'ADMIN') {
       const marcasPermitidas = await this.getMarcasPermitidasPorUsuario(usr.id);
       if (marcasPermitidas.length === 0) {
         return [];
@@ -350,7 +360,7 @@ export const api = {
       .select('*, cliente:clientes(id, nombre), responsable:usuarios(id, username, nombre, rol)')
       .is('deletedAt', null);
 
-    if (usr && usr.rol === 'ACOMPAÑANTE') {
+    if (usr && usr.rol !== 'ADMIN') {
       const marcasPermitidas = await this.getMarcasPermitidasPorUsuario(usr.id);
       if (marcasPermitidas.length === 0) {
         return [];
@@ -572,6 +582,17 @@ export const api = {
     
     if (insertError) {
       throw new Error(insertError.message || 'Error al asignar marcas');
+    }
+  },
+
+  async toggleAccesoUsuario(id: string | number, activo: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ activo, updatedAt: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'Error al cambiar estado de acceso');
     }
   },
 

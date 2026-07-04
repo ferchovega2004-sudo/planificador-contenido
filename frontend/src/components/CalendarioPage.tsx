@@ -166,7 +166,7 @@ const CalendarioPage: React.FC = () => {
 
   const handleContextMenu = (e: React.MouseEvent, pub: Publicacion) => {
     const currentUsr = api.getUsuarioActual();
-    if (currentUsr?.rol === 'ACOMPAÑANTE') return; // Acompañante no puede modificar
+    if (currentUsr?.rol === 'ACOMPAÑANTE' || currentUsr?.rol === 'EDITOR') return; // Solo lectura para estos roles
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, pub });
   };
@@ -282,7 +282,7 @@ const CalendarioPage: React.FC = () => {
   const handleDrop = async (e: React.DragEvent, targetFechaStr: string) => {
     e.preventDefault();
     const currentUsr = api.getUsuarioActual();
-    if (currentUsr?.rol === 'ACOMPAÑANTE') return; // Acompañante no puede modificar
+    if (currentUsr?.rol === 'ACOMPAÑANTE' || currentUsr?.rol === 'EDITOR') return; // Solo lectura para estos roles
 
     const idStr = e.dataTransfer.getData('text/plain');
     if (!idStr) return;
@@ -598,7 +598,11 @@ const CalendarioPage: React.FC = () => {
                       setDraggedOverDate(null);
                       handleDrop(e, fechaStr);
                     }}
-                    onDoubleClick={() => setCrearCeldaInfo({ fecha: fechaStr })}
+                    onDoubleClick={() => {
+                      const usr = api.getUsuarioActual();
+                      if (usr?.rol === 'ACOMPAÑANTE' || usr?.rol === 'EDITOR') return;
+                      setCrearCeldaInfo({ fecha: fechaStr });
+                    }}
                   >
                     <div className="calendar-grid-day-header">
                       <span className="calendar-grid-day-number">{dia.getDate()}</span>
@@ -670,16 +674,22 @@ const CalendarioPage: React.FC = () => {
                       ))}
                     </div>
 
-                    <div
-                      className="cell-quick-add"
-                      title="Agregar publicación"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCrearCeldaInfo({ fecha: fechaStr });
-                      }}
-                    >
-                      +
-                    </div>
+                    {(() => {
+                      const usr = api.getUsuarioActual();
+                      if (usr?.rol === 'ACOMPAÑANTE' || usr?.rol === 'EDITOR') return null;
+                      return (
+                        <div
+                          className="cell-quick-add"
+                          title="Agregar publicación"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCrearCeldaInfo({ fecha: fechaStr });
+                          }}
+                        >
+                          +
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

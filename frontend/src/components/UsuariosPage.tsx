@@ -101,7 +101,7 @@ const UsuariosPage: React.FC = () => {
 
     try {
       const nuevoUsr = await api.registrarUsuario({ nombre, username, password, rol });
-      if (rol === 'ACOMPAÑANTE' && marcasSeleccionadas.length > 0) {
+      if (rol !== 'ADMIN' && marcasSeleccionadas.length > 0) {
         await api.asignarMarcasAUsuario(nuevoUsr.id, marcasSeleccionadas);
       }
       setNombre('');
@@ -238,9 +238,9 @@ const UsuariosPage: React.FC = () => {
                   <tr key={usr.id}>
                     <td>
                       <strong>{usr.nombre}</strong>
-                      {usr.rol === 'ACOMPAÑANTE' && (
+                      {usr.rol !== 'ADMIN' && (
                         <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', marginTop: '4px' }}>
-                          Marcas permitidas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna'}
+                          Marcas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna asignada'}
                         </div>
                       )}
                     </td>
@@ -263,6 +263,24 @@ const UsuariosPage: React.FC = () => {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       {usr.rol === 'ACOMPAÑANTE' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const nuevoEstado = !usr.activo;
+                              await api.toggleAccesoUsuario(usr.id, nuevoEstado);
+                              setSuccessMsg(`Acceso de ${usr.nombre} ${nuevoEstado ? 'activado' : 'desactivado'}`);
+                              cargarUsuarios();
+                            } catch (err: any) {
+                              setError(err.message || 'Error al cambiar acceso');
+                            }
+                          }}
+                          className={`btn-action ${usr.activo !== false ? 'btn-danger' : 'btn-primary'}`}
+                          style={{ marginRight: '8px', fontSize: '11px' }}
+                        >
+                          {usr.activo !== false ? '🔒 Desactivar' : '🔓 Activar'}
+                        </button>
+                      )}
+                      {usr.rol !== 'ADMIN' && (
                         <button
                           onClick={() => handleGestionarMarcasClick(usr)}
                           className="btn-action btn-secondary"
@@ -374,9 +392,9 @@ const UsuariosPage: React.FC = () => {
               </select>
             </div>
 
-            {rol === 'ACOMPAÑANTE' && (
+            {rol !== 'ADMIN' && (
               <div className="form-group" style={{ marginTop: '10px', marginBottom: '14px' }}>
-                <label>Marcas Permitidas</label>
+                <label>Marcas Asignadas</label>
                 <div style={{
                   maxHeight: '140px',
                   overflowY: 'auto',
@@ -408,6 +426,9 @@ const UsuariosPage: React.FC = () => {
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No hay marcas registradas.</span>
                   )}
                 </div>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Solo verá las marcas seleccionadas. Si no selecciona ninguna, no tendrá acceso a contenido.
+                </span>
               </div>
             )}
 
