@@ -16,6 +16,12 @@ const CalendarioPage: React.FC = () => {
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
   const isFirstMount = useRef(true);
 
+  const mesesNombres = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const anios = [2025, 2026, 2027, 2028];
+
   // Modal de Detalle
   const [selectedPub, setSelectedPub] = useState<Publicacion | null>(null);
 
@@ -247,9 +253,61 @@ const CalendarioPage: React.FC = () => {
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title" style={{ textTransform: 'capitalize' }}>
-            {getEncabezadoTitulo()}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 className="page-title" style={{ margin: 0, whiteSpace: 'nowrap' }}>Calendario Publicaciones:</h1>
+            
+            <select
+              value={fechaReferencia.getMonth()}
+              onChange={(e) => {
+                const nueva = new Date(fechaReferencia);
+                nueva.setMonth(Number(e.target.value));
+                setFechaReferencia(nueva);
+              }}
+              style={{
+                fontSize: '24px',
+                fontWeight: '800',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--neon-pink)',
+                cursor: 'pointer',
+                outline: 'none',
+                fontFamily: 'inherit',
+                textTransform: 'capitalize',
+                paddingRight: '6px'
+              }}
+            >
+              {mesesNombres.map((m, idx) => (
+                <option key={idx} value={idx} style={{ backgroundColor: '#100a0d', color: '#ffffff' }}>
+                  {m}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={fechaReferencia.getFullYear()}
+              onChange={(e) => {
+                const nueva = new Date(fechaReferencia);
+                nueva.setFullYear(Number(e.target.value));
+                setFechaReferencia(nueva);
+              }}
+              style={{
+                fontSize: '24px',
+                fontWeight: '800',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--neon-pink)',
+                cursor: 'pointer',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            >
+              {anios.map((y) => (
+                <option key={y} value={y} style={{ backgroundColor: '#100a0d', color: '#ffffff' }}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
           <p className="page-subtitle">Gestiona y planifica tus publicaciones mensuales de forma visual.</p>
         </div>
 

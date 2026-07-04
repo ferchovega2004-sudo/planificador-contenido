@@ -157,7 +157,7 @@ const KanbanPage: React.FC = () => {
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">Flujo de Trabajo (Kanban)</h1>
+          <h1 className="page-title">Flujo de Publicaciones</h1>
           <p className="page-subtitle">Arrastra y suelta las publicaciones para actualizar su estado de producción</p>
         </div>
 

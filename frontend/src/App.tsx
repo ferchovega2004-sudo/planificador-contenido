@@ -51,23 +51,18 @@ function App(): React.JSX.Element {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', padding: '20px 14px' }}>
-          <div className="sidebar-logo-custom" style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-pink) 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: '800',
-            fontSize: '14px',
-            color: '#ffffff',
-            boxShadow: '0 0 10px rgba(192, 132, 252, 0.4)',
-            fontFamily: 'Outfit, sans-serif',
-            flexShrink: 0
-          }}>
-            GD
-          </div>
+          <img
+            src={logo}
+            alt="Logo Gara Digital"
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              boxShadow: '0 0 10px rgba(192, 132, 252, 0.4)',
+              flexShrink: 0
+            }}
+          />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span className="sidebar-title" style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.2' }}>GARA DIGITAL</span>
             <span className="sidebar-subtitle" style={{ fontSize: '8px', marginTop: '2px' }}>PLANIFICADOR</span>
@@ -99,7 +94,7 @@ function App(): React.JSX.Element {
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              Calendario Matriz
+              Calendario Publicaciones
             </div>
           )}
 
@@ -115,7 +110,7 @@ function App(): React.JSX.Element {
                 <line x1="3" y1="9" x2="21" y2="9"></line>
                 <line x1="3" y1="15" x2="21" y2="15"></line>
               </svg>
-              Flujo Kanban
+              Flujo de Publicaciones
             </div>
           )}
           
