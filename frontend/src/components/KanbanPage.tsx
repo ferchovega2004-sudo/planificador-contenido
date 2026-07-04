@@ -784,6 +784,7 @@ const KanbanPage: React.FC = () => {
             setSelectedPub(null);
             cargarDatos();
           }}
+          readOnly={api.getUsuarioActual()?.rol === 'ACOMPAÑANTE'}
         />
       )}
       {contextMenu && (

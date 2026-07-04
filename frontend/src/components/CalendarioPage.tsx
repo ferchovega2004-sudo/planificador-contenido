@@ -844,6 +844,7 @@ const CalendarioPage: React.FC = () => {
             setSelectedPub(null);
             cargarDatos();
           }}
+          readOnly={!puedeEditarCalendario(api.getUsuarioActual())}
         />
       )}
       {contextMenu && (

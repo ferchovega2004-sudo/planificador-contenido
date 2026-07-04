@@ -9,6 +9,7 @@ interface DetallePublicacionModalProps {
   onSave: () => void;
   onDelete: () => void;
   clientesList: Cliente[];
+  readOnly?: boolean;
 }
 
 const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
@@ -17,6 +18,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   onSave,
   onDelete,
   clientesList,
+  readOnly = false,
 }) => {
   const [titulo, setTitulo] = useState(publicacion.titulo);
   const [fecha, setFecha] = useState('');
@@ -234,7 +236,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Ej: Video de reels promocional"
                 required
-                disabled={guardando}
+                disabled={guardando || readOnly}
               />
             </div>
 
@@ -244,7 +246,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 <select
                   value={clienteId}
                   onChange={(e) => setClienteId(Number(e.target.value))}
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                 >
                   {clientesList.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -259,7 +261,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 <select
                   value={plataforma}
                   onChange={(e) => setPlataforma(e.target.value)}
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                 >
                   <option value="">Seleccionar plataforma</option>
                   <option value="INSTAGRAM">Instagram</option>
@@ -279,7 +281,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
                   required
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                 />
               </div>
 
@@ -289,20 +291,20 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                   <input
                     type="text"
                     value={formatTimeDisplay(horaPublicacion)}
-                    onClick={() => !guardando && setShowTimePicker(true)}
+                    onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
                     readOnly
                     placeholder="--:--"
-                    disabled={guardando}
-                    style={{ cursor: 'pointer', paddingRight: '36px' }}
+                    disabled={guardando || readOnly}
+                    style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
                   />
                   <span
-                    onClick={() => !guardando && setShowTimePicker(true)}
+                    onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
                     style={{
                       position: 'absolute',
                       right: '12px',
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      cursor: 'pointer',
+                      cursor: readOnly ? 'default' : 'pointer',
                       color: 'var(--text-muted)',
                       fontSize: '13px',
                       userSelect: 'none'
@@ -331,7 +333,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 <select
                   value={estado}
                   onChange={(e) => setEstado(e.target.value as any)}
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                 >
                   <option value="POR_GRABAR">Por grabar</option>
                   <option value="EDICION">En proceso de edición</option>
@@ -345,7 +347,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 <select
                   value={responsableId}
                   onChange={(e) => setResponsableId(e.target.value)}
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                 >
                   <option value="">Asignar miembro del equipo</option>
                   {usuarios.map((u) => (
@@ -365,7 +367,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                   value={driveUrl}
                   onChange={(e) => setDriveUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  disabled={guardando}
+                  disabled={guardando || readOnly}
                   style={{ flex: 1 }}
                 />
                 {driveUrl && (
@@ -393,7 +395,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 value={miniaturaUrl}
                 onChange={(e) => setMiniaturaUrl(e.target.value)}
                 placeholder="https://images.unsplash.com/... o enlace de Drive"
-                disabled={guardando}
+                disabled={guardando || readOnly}
               />
               {miniaturaUrl && miniaturaUrl.startsWith('http') && (
                 <div style={{ marginTop: '8px', border: '1px solid rgba(192, 132, 252, 0.25)', borderRadius: '8px', overflow: 'hidden', width: '130px', height: '73px', background: '#000000', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
@@ -414,7 +416,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Escribe comentarios, pautas del cliente o indicaciones para el editor..."
                 rows={3}
-                disabled={guardando}
+                disabled={guardando || readOnly}
               />
             </div>
           </div>
@@ -425,58 +427,62 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
               <label>Guión / Texto del Post (Rich Editor)</label>
               
               {/* Barra de herramientas simulada para el editor de texto enriquecido */}
-              <div className="rich-editor-toolbar">
-                <button
-                  type="button"
-                  title="Negrita"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyFormat('bold')}
-                  style={{ fontWeight: 'bold' }}
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  title="Cursiva"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyFormat('italic')}
-                  style={{ fontStyle: 'italic' }}
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  title="Subrayado"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyFormat('underline')}
-                  style={{ textDecoration: 'underline' }}
-                >
-                  U
-                </button>
-                <button
-                  type="button"
-                  title="Listas"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyFormat('list')}
-                >
-                  • List
-                </button>
-                <span style={{ flex: 1 }}></span>
-                <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
-              </div>
+              {!readOnly && (
+                <div className="rich-editor-toolbar">
+                  <button
+                    type="button"
+                    title="Negrita"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyFormat('bold')}
+                    style={{ fontWeight: 'bold' }}
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    title="Cursiva"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyFormat('italic')}
+                    style={{ fontStyle: 'italic' }}
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    title="Subrayado"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyFormat('underline')}
+                    style={{ textDecoration: 'underline' }}
+                  >
+                    U
+                  </button>
+                  <button
+                    type="button"
+                    title="Listas"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyFormat('list')}
+                  >
+                    • List
+                  </button>
+                  <span style={{ flex: 1 }}></span>
+                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
+                </div>
+              )}
 
               {/* Contenedor editable para simular el Rich Text Editor */}
               <div
                 ref={editorRef}
                 className="rich-editor-content"
-                contentEditable={!guardando}
+                contentEditable={!guardando && !readOnly}
                 suppressContentEditableWarning
                 data-placeholder="Escribe el gancho, desarrollo y llamado a la acción..."
                 onInput={(e) => setGuion(e.currentTarget.innerHTML)}
                 onBlur={(e) => setGuion(e.currentTarget.innerHTML)}
                 style={{
                   flex: 1,
-                  minHeight: '220px'
+                  minHeight: '220px',
+                  outline: readOnly ? 'none' : undefined,
+                  cursor: readOnly ? 'default' : 'text'
                 }}
               />
 
@@ -488,14 +494,18 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         </form>
 
         <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={() => setShowConfirmDelete(true)}
-            disabled={guardando || eliminando}
-          >
-            {eliminando ? 'Eliminando...' : 'Eliminar Publicación'}
-          </button>
+          {!readOnly ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => setShowConfirmDelete(true)}
+              disabled={guardando || eliminando}
+            >
+              {eliminando ? 'Eliminando...' : 'Eliminar Publicación'}
+            </button>
+          ) : (
+            <span style={{ flex: 1 }}></span>
+          )}
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
@@ -504,16 +514,18 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
               onClick={onClose}
               disabled={guardando || eliminando}
             >
-              Cancelar
+              {readOnly ? 'Cerrar' : 'Cancelar'}
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleGuardar}
-              disabled={guardando || eliminando}
-            >
-              {guardando ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleGuardar}
+                disabled={guardando || eliminando}
+              >
+                {guardando ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            )}
           </div>
         </div>
       </div>
