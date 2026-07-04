@@ -28,6 +28,11 @@ export interface Publicacion {
   guion: string | null;
   driveUrl: string | null;
   notas: string | null;
+  plataforma?: string | null;
+  responsableId?: string | null;
+  responsable?: Usuario | null;
+  horaPublicacion?: string | null;
+  miniaturaUrl?: string | null;
   createdAt?: string;
 }
 
@@ -281,7 +286,7 @@ export const api = {
     const usr = this.getUsuarioActual();
     let query = supabase
       .from('publicaciones')
-      .select('*, cliente:clientes(id, nombre)')
+      .select('*, cliente:clientes(id, nombre), responsable:usuarios(id, username, nombre, rol)')
       .is('deletedAt', null);
 
     if (usr && usr.rol === 'ACOMPAÑANTE') {
@@ -323,6 +328,16 @@ export const api = {
       guion: p.guion,
       driveUrl: p.driveUrl,
       notas: p.notas,
+      plataforma: p.plataforma,
+      responsableId: p.responsableId,
+      responsable: p.responsable ? {
+        id: p.responsable.id,
+        username: p.responsable.username,
+        nombre: p.responsable.nombre,
+        rol: p.responsable.rol
+      } : null,
+      horaPublicacion: p.horaPublicacion,
+      miniaturaUrl: p.miniaturaUrl,
       createdAt: p.createdAt,
     }));
   },
@@ -335,11 +350,15 @@ export const api = {
     guion?: string;
     driveUrl?: string;
     notas?: string;
+    plataforma?: string | null;
+    responsableId?: string | null;
+    horaPublicacion?: string | null;
+    miniaturaUrl?: string | null;
   }): Promise<Publicacion> {
     const { data: resData, error } = await supabase
       .from('publicaciones')
       .insert([data])
-      .select('*, cliente:clientes(id, nombre)')
+      .select('*, cliente:clientes(id, nombre), responsable:usuarios(id, username, nombre, rol)')
       .single();
 
     if (error) {
@@ -359,6 +378,16 @@ export const api = {
       guion: resData.guion,
       driveUrl: resData.driveUrl,
       notas: resData.notas,
+      plataforma: resData.plataforma,
+      responsableId: resData.responsableId,
+      responsable: resData.responsable ? {
+        id: resData.responsable.id,
+        username: resData.responsable.username,
+        nombre: resData.responsable.nombre,
+        rol: resData.responsable.rol
+      } : null,
+      horaPublicacion: resData.horaPublicacion,
+      miniaturaUrl: resData.miniaturaUrl,
       createdAt: resData.createdAt,
     };
   },
@@ -373,7 +402,7 @@ export const api = {
       .from('publicaciones')
       .update({ ...data, updatedAt: new Date().toISOString() })
       .eq('id', id)
-      .select('*, cliente:clientes(id, nombre)')
+      .select('*, cliente:clientes(id, nombre), responsable:usuarios(id, username, nombre, rol)')
       .single();
 
     if (error) {
@@ -393,6 +422,16 @@ export const api = {
       guion: resData.guion,
       driveUrl: resData.driveUrl,
       notas: resData.notas,
+      plataforma: resData.plataforma,
+      responsableId: resData.responsableId,
+      responsable: resData.responsable ? {
+        id: resData.responsable.id,
+        username: resData.responsable.username,
+        nombre: resData.responsable.nombre,
+        rol: resData.responsable.rol
+      } : null,
+      horaPublicacion: resData.horaPublicacion,
+      miniaturaUrl: resData.miniaturaUrl,
       createdAt: resData.createdAt,
     };
   },

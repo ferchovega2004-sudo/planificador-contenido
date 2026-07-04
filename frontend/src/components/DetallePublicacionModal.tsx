@@ -24,6 +24,12 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const [driveUrl, setDriveUrl] = useState(publicacion.driveUrl || '');
   const [notas, setNotas] = useState(publicacion.notas || '');
   const [clienteId, setClienteId] = useState(publicacion.clienteId);
+  const [plataforma, setPlataforma] = useState(publicacion.plataforma || '');
+  const [responsableId, setResponsableId] = useState(publicacion.responsableId || '');
+  const [horaPublicacion, setHoraPublicacion] = useState(publicacion.horaPublicacion || '');
+  const [miniaturaUrl, setMiniaturaUrl] = useState(publicacion.miniaturaUrl || '');
+  
+  const [usuarios, setUsuarios] = useState<any[]>([]);
   
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
@@ -42,6 +48,26 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
       setFecha(`${year}-${month}-${day}`);
     }
   }, [publicacion]);
+
+  // Inicializar contenido del editor de guion una sola vez
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = publicacion.guion || '';
+    }
+  }, [publicacion.id]);
+
+  // Cargar lista de usuarios del equipo
+  useEffect(() => {
+    const cargarUsuarios = async () => {
+      try {
+        const list = await api.getUsuarios();
+        setUsuarios(list);
+      } catch (err) {
+        console.error('Error al cargar usuarios:', err);
+      }
+    };
+    cargarUsuarios();
+  }, []);
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +88,10 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         driveUrl: driveUrl.trim(),
         notas: notas.trim(),
         clienteId,
+        plataforma: plataforma || null,
+        responsableId: responsableId || null,
+        horaPublicacion: horaPublicacion || null,
+        miniaturaUrl: miniaturaUrl || null,
       });
       onSave();
     } catch (err: any) {
@@ -211,6 +241,24 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
               </div>
 
               <div className="form-group" style={{ flex: 1 }}>
+                <label>Plataforma</label>
+                <select
+                  value={plataforma}
+                  onChange={(e) => setPlataforma(e.target.value)}
+                  disabled={guardando}
+                >
+                  <option value="">Seleccionar plataforma</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="TIKTOK">TikTok</option>
+                  <option value="YOUTUBE">YouTube Shorts</option>
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="OTRO">Otro / Web</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 1 }}>
                 <label>Fecha de Publicación</label>
                 <input
                   type="date"
@@ -220,43 +268,109 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                   disabled={guardando}
                 />
               </div>
+
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Hora de Publicación</label>
+                <input
+                  type="time"
+                  value={horaPublicacion}
+                  onChange={(e) => setHoraPublicacion(e.target.value)}
+                  disabled={guardando}
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label style={{ margin: 0 }}>Estado de Producción</label>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
+                    boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
+                    display: 'inline-block',
+                    transition: 'all 0.3s ease'
+                  }} />
+                </div>
+                <select
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value as any)}
+                  disabled={guardando}
+                >
+                  <option value="POR_GRABAR">Por grabar</option>
+                  <option value="EDICION">En proceso de edición</option>
+                  <option value="TERMINADO">Terminado</option>
+                  <option value="PUBLICADO">Publicado</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Responsable</label>
+                <select
+                  value={responsableId}
+                  onChange={(e) => setResponsableId(e.target.value)}
+                  disabled={guardando}
+                >
+                  <option value="">Asignar miembro del equipo</option>
+                  {usuarios.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="form-group">
-              <label>Estado de Producción</label>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value as any)}
-                disabled={guardando}
-              >
-                <option value="POR_GRABAR">Por grabar</option>
-                <option value="EDICION">En proceso de edición</option>
-                <option value="TERMINADO">Terminado</option>
-                <option value="PUBLICADO">Publicado</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>Enlace de Google Drive (Material / Video Crudo)</label>
+              <label>Enlace de Google Drive (Material / Video Crudo)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="url"
+                  value={driveUrl}
+                  onChange={(e) => setDriveUrl(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  disabled={guardando}
+                  style={{ flex: 1 }}
+                />
                 {driveUrl && (
                   <button
                     type="button"
                     onClick={handleOpenDrive}
-                    className="link-btn"
-                    style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    className="btn btn-secondary"
+                    style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '12px' }}
                   >
-                    Abrir enlace externo
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                    Abrir Drive
                   </button>
                 )}
               </div>
+            </div>
+
+            <div className="form-group">
+              <label>Miniatura del Video (URL de Imagen)</label>
               <input
                 type="url"
-                value={driveUrl}
-                onChange={(e) => setDriveUrl(e.target.value)}
-                placeholder="https://drive.google.com/drive/folders/..."
+                value={miniaturaUrl}
+                onChange={(e) => setMiniaturaUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/... o enlace de Drive"
                 disabled={guardando}
               />
+              {miniaturaUrl && miniaturaUrl.startsWith('http') && (
+                <div style={{ marginTop: '8px', border: '1px solid rgba(192, 132, 252, 0.25)', borderRadius: '8px', overflow: 'hidden', width: '130px', height: '73px', background: '#000000', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+                  <img
+                    src={miniaturaUrl}
+                    alt="Miniatura Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -265,7 +379,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Escribe comentarios, pautas del cliente o indicaciones para el editor..."
-                rows={4}
+                rows={3}
                 disabled={guardando}
               />
             </div>
@@ -274,17 +388,45 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           {/* Columna Derecha: Editor de Guion / Copy */}
           <div className="form-column-right">
             <div className="form-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Guión / Texto del Post (Rich Editor)</span>
-                <span className="text-muted" style={{ fontSize: '10px' }}>Escribe el gancho, desarrollo y llamado a la acción</span>
-              </label>
+              <label>Guión / Texto del Post (Rich Editor)</label>
               
               {/* Barra de herramientas simulada para el editor de texto enriquecido */}
               <div className="rich-editor-toolbar">
-                <button type="button" title="Negrita" onClick={() => applyFormat('bold')} style={{ fontWeight: 'bold' }}>B</button>
-                <button type="button" title="Cursiva" onClick={() => applyFormat('italic')} style={{ fontStyle: 'italic' }}>I</button>
-                <button type="button" title="Subrayado" onClick={() => applyFormat('underline')} style={{ textDecoration: 'underline' }}>U</button>
-                <button type="button" title="Listas" onClick={() => applyFormat('list')}>• List</button>
+                <button
+                  type="button"
+                  title="Negrita"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyFormat('bold')}
+                  style={{ fontWeight: 'bold' }}
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  title="Cursiva"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyFormat('italic')}
+                  style={{ fontStyle: 'italic' }}
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  title="Subrayado"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyFormat('underline')}
+                  style={{ textDecoration: 'underline' }}
+                >
+                  U
+                </button>
+                <button
+                  type="button"
+                  title="Listas"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyFormat('list')}
+                >
+                  • List
+                </button>
                 <span style={{ flex: 1 }}></span>
                 <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
               </div>
@@ -295,21 +437,18 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
                 className="rich-editor-content"
                 contentEditable={!guardando}
                 suppressContentEditableWarning
+                data-placeholder="Escribe el gancho, desarrollo y llamado a la acción..."
+                onInput={(e) => setGuion(e.currentTarget.innerHTML)}
                 onBlur={(e) => setGuion(e.currentTarget.innerHTML)}
-                dangerouslySetInnerHTML={{ __html: publicacion.guion || '' }}
                 style={{
                   flex: 1,
-                  minHeight: '220px',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0 0 6px 6px',
-                  padding: '12px',
-                  backgroundColor: '#ffffff',
-                  outline: 'none',
-                  overflowY: 'auto',
-                  fontFamily: 'inherit',
-                  color: '#374151'
+                  minHeight: '220px'
                 }}
               />
+
+              <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontFamily: 'Outfit, sans-serif' }}>
+                {guion ? guion.replace(/<[^>]*>/g, '').length : 0} caracteres
+              </div>
             </div>
           </div>
         </form>
@@ -317,7 +456,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
           <button
             type="button"
-            className="btn-danger"
+            className="btn btn-danger"
             onClick={() => setShowConfirmDelete(true)}
             disabled={guardando || eliminando}
           >
@@ -327,7 +466,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               type="button"
-              className="btn-secondary"
+              className="btn btn-secondary"
               onClick={onClose}
               disabled={guardando || eliminando}
             >
@@ -335,7 +474,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
             </button>
             <button
               type="button"
-              className="btn-primary"
+              className="btn btn-primary"
               onClick={handleGuardar}
               disabled={guardando || eliminando}
             >
