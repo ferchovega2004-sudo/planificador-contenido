@@ -280,52 +280,55 @@ body {
 }
 
 /* Buttons */
-.btn {
+.btn, .btn-primary, .btn-secondary, .btn-danger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
   outline: none;
+  font-family: 'Outfit', sans-serif;
+  box-sizing: border-box;
 }
 
-.btn:active {
+.btn:active, .btn-primary:active, .btn-secondary:active, .btn-danger:active {
   transform: scale(0.98);
 }
 
 .btn-primary {
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--cyber-blue) 0%, var(--neon-cyan) 100%);
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--cyber-blue) 0%, var(--neon-cyan) 100%) !important;
   box-shadow: 0 4px 12px rgba(192, 132, 252, 0.15);
   font-weight: 700;
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-pink) 100%);
+  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-pink) 100%) !important;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
 
 .btn-secondary {
-  color: #f1f5f9;
-  background-color: var(--surface-hover);
-  border: 1px solid rgba(192, 132, 252, 0.2);
+  color: #f1f5f9 !important;
+  background-color: var(--surface-hover) !important;
+  border: 1px solid rgba(192, 132, 252, 0.2) !important;
 }
 .btn-secondary:hover {
-  background-color: var(--surface-active);
-  border-color: var(--neon-cyan);
+  background-color: var(--surface-active) !important;
+  border-color: var(--neon-cyan) !important;
 }
 
 .btn-danger {
-  color: #ffffff;
-  background-color: #ef4444;
+  color: #ffffff !important;
+  background-color: #ef4444 !important;
 }
 .btn-danger:hover {
-  background-color: #dc2626;
+  background-color: #dc2626 !important;
 }
 
 /* Cards & Containers */
@@ -1095,34 +1098,37 @@ body {
 }
 
 .btn-action {
-  padding: 4px 10px;
+  padding: 5px 12px;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  border: none;
   transition: all 0.15s ease;
+  background-color: rgba(192, 132, 252, 0.08);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  outline: none;
+  box-sizing: border-box;
 }
 
-.btn-action.btn-secondary {
-  background-color: #2e1e24;
-  color: #cbd5e1;
-  border: 1px solid #3b232c;
-}
-
-.btn-action.btn-secondary:hover {
-  background-color: #3b232c;
-  color: #ffffff;
+.btn-action:hover {
+  background-color: var(--surface-active);
+  color: var(--text-primary);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.2);
 }
 
 .btn-action.btn-danger {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .btn-action.btn-danger:hover {
   background-color: #ef4444;
-  color: white;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
 }
 
 .alert {
@@ -1670,6 +1676,73 @@ body {
   color: var(--text-muted);
   opacity: 0.55;
   pointer-events: none;
+}
+
+/* Animations for Radial Time Picker */
+@keyframes tpBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tpModalScale {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes tpClockSwitch {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.tp-backdrop {
+  animation: tpBackdropFade 0.22s ease-out forwards;
+}
+
+.tp-modal {
+  animation: tpModalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.tp-clock-face-container {
+  animation: tpClockSwitch 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Custom premium radio buttons */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--surface-base);
+  margin: 0;
+  font: inherit;
+  color: var(--neon-cyan);
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(192, 132, 252, 0.4);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+input[type="radio"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 1em 1em var(--neon-cyan);
+}
+
+input[type="radio"]:checked {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.35);
+}
+
+input[type="radio"]:checked::before {
+  transform: scale(1);
 }
 
 

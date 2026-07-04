@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api, Publicacion, Cliente } from '../services/api';
 import ConfirmDialog from './ConfirmDialog';
+import RadialTimePicker from './RadialTimePicker';
 
 interface DetallePublicacionModalProps {
   publicacion: Publicacion;
@@ -36,6 +37,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +70,18 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     };
     cargarUsuarios();
   }, []);
+
+  const formatTimeDisplay = (time24: string) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return '';
+    const p = h >= 12 ? 'PM' : 'AM';
+    let displayHour = h % 12;
+    if (displayHour === 0) displayHour = 12;
+    return `${displayHour.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${p}`;
+  };
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,12 +285,32 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 
               <div className="form-group" style={{ flex: 1 }}>
                 <label>Hora de Publicación</label>
-                <input
-                  type="time"
-                  value={horaPublicacion}
-                  onChange={(e) => setHoraPublicacion(e.target.value)}
-                  disabled={guardando}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={formatTimeDisplay(horaPublicacion)}
+                    onClick={() => !guardando && setShowTimePicker(true)}
+                    readOnly
+                    placeholder="--:--"
+                    disabled={guardando}
+                    style={{ cursor: 'pointer', paddingRight: '36px' }}
+                  />
+                  <span
+                    onClick={() => !guardando && setShowTimePicker(true)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      fontSize: '13px',
+                      userSelect: 'none'
+                    }}
+                  >
+                    🕒
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -494,6 +528,17 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         onCancel={() => setShowConfirmDelete(false)}
         variant="danger"
       />
+
+      {showTimePicker && (
+        <RadialTimePicker
+          initialValue={horaPublicacion}
+          onClose={() => setShowTimePicker(false)}
+          onSelect={(timeStr) => {
+            setHoraPublicacion(timeStr);
+            setShowTimePicker(false);
+          }}
+        />
+      )}
     </div>
   );
 };
