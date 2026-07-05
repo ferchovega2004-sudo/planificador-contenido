@@ -7,7 +7,8 @@ import ContextMenu from './ContextMenu';
 const puedeEditarCalendario = (usr: Usuario | null): boolean => {
   if (!usr) return false;
   if (usr.rol === 'ADMIN' || usr.rol === 'USER') return true;
-  // El Acompañante nunca edita directamente
+  // ACOMPAÑANTE solo puede editar si el admin le habilitó el permiso explícitamente (activo === true)
+  if (usr.rol === 'ACOMPAÑANTE' && usr.activo === true) return true;
   return false;
 };
 
@@ -624,10 +625,10 @@ const CalendarioPage: React.FC = () => {
                         <div
                           key={pub.id}
                           className={`calendar-pub-card ${classEstados[pub.estado]}`}
-                          draggable={!esAcompanante && puedeEditarCalendario(api.getUsuarioActual())}
+                          draggable={puedeEditarCalendario(api.getUsuarioActual())}
                           onDragStart={(e) => handleDragStart(e, pub.id)}
                           onContextMenu={(e) => {
-                            if (esAcompanante) {
+                            if (esAcompanante && !puedeEditarCalendario(usuarioActual)) {
                               e.preventDefault();
                               return;
                             }
@@ -747,7 +748,7 @@ const CalendarioPage: React.FC = () => {
                             key={pub.id}
                             style={{ cursor: puedeVerDetalles ? 'pointer' : 'default' }}
                             onContextMenu={(e) => {
-                              if (esAcompanante) {
+                              if (esAcompanante && !puedeEditarCalendario(usuarioActual)) {
                                 e.preventDefault();
                                 return;
                               }

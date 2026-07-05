@@ -598,7 +598,7 @@ export const api = {
       .is('deletedAt', null)
       .maybeSingle();
 
-    if (error) {
+    if (error || !profile) {
       return null;
     }
 
@@ -607,6 +607,7 @@ export const api = {
       username: profile.username,
       nombre: profile.nombre || 'Miembro del Equipo',
       rol: profile.rol as any,
+      activo: profile.activo === true,
     };
   },
 };
