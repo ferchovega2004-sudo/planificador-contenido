@@ -24,6 +24,7 @@ const ReportesPage: React.FC = () => {
     responsable: true,
     guion: true,
     material: true,
+    publicacionFinal: true,
     notas: true
   });
 
@@ -138,7 +139,8 @@ const ReportesPage: React.FC = () => {
       const thEstado = columnasVisibles.estado ? `<th style="width: 10%;">Estado</th>` : '';
       const thResponsable = columnasVisibles.responsable ? `<th style="width: 12%;">Responsable</th>` : '';
       const thGuion = columnasVisibles.guion ? `<th style="width: 13%;">Guión (Extracto)</th>` : '';
-      const thMaterial = columnasVisibles.material ? `<th style="width: 8%;">Material</th>` : '';
+      const thMaterial = columnasVisibles.material ? `<th style="width: 8%;">Drive</th>` : '';
+      const thPubFinal = columnasVisibles.publicacionFinal ? `<th style="width: 8%;">Enlace Final</th>` : '';
       const thNotas = columnasVisibles.notas ? `<th style="width: 10%;">Notas</th>` : '';
 
       const filasHTML = publicaciones.map((pub: any) => {
@@ -152,6 +154,7 @@ const ReportesPage: React.FC = () => {
         const estadoTexto = mapeoEstados[pub.estado] || pub.estado;
         const guionSafe = pub.guion ? pub.guion.replace(/<[^>]*>/g, ' ').substring(0, 100) + (pub.guion.length > 100 ? '...' : '') : 'Sin guion';
         const driveSafe = pub.driveUrl ? `<a href="${pub.driveUrl}" target="_blank">Ver material</a>` : 'Sin link';
+        const pubFinalSafe = pub.miniaturaUrl ? `<a href="${pub.miniaturaUrl}" target="_blank">Ver enlace</a>` : 'Sin enlace';
         const notasSafe = pub.notas ? pub.notas.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 100) + (pub.notas.length > 100 ? '...' : '') : 'Sin notas';
         const responsableSafe = pub.responsable?.nombre || 'Sin asignar';
         const plataformaSafe = pub.plataforma || 'OTRO';
@@ -164,6 +167,7 @@ const ReportesPage: React.FC = () => {
         const tdResponsable = columnasVisibles.responsable ? `<td>${responsableSafe}</td>` : '';
         const tdGuion = columnasVisibles.guion ? `<td class="text-muted">${guionSafe}</td>` : '';
         const tdMaterial = columnasVisibles.material ? `<td>${driveSafe}</td>` : '';
+        const tdPubFinal = columnasVisibles.publicacionFinal ? `<td>${pubFinalSafe}</td>` : '';
         const tdNotas = columnasVisibles.notas ? `<td class="text-muted">${notasSafe}</td>` : '';
 
         return `
@@ -294,6 +298,7 @@ const ReportesPage: React.FC = () => {
                   ${thResponsable}
                   ${thGuion}
                   ${thMaterial}
+                  ${thPubFinal}
                   ${thNotas}
                 </tr>
               </thead>
@@ -451,7 +456,8 @@ const ReportesPage: React.FC = () => {
                     estado: 'Estado',
                     responsable: 'Responsable',
                     guion: 'Guión',
-                    material: 'Material',
+                    material: 'Material / Drive',
+                    publicacionFinal: 'Publicación Final',
                     notas: 'Notas'
                   };
                   return (
@@ -594,7 +600,8 @@ const ReportesPage: React.FC = () => {
                       {columnasVisibles.estado && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Estado</th>}
                       {columnasVisibles.responsable && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Responsable</th>}
                       {columnasVisibles.guion && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Guión</th>}
-                      {columnasVisibles.material && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Material</th>}
+                      {columnasVisibles.material && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Material / Drive</th>}
+                      {columnasVisibles.publicacionFinal && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Enlace Final</th>}
                       {columnasVisibles.notas && <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 'bold', color: '#1f2937' }}>Notas</th>}
                     </tr>
                   </thead>
@@ -635,6 +642,11 @@ const ReportesPage: React.FC = () => {
                           {columnasVisibles.material && (
                             <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb' }}>
                               {pub.driveUrl ? <a href={pub.driveUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '8px' }}>Ver material</a> : <span style={{ color: '#9ca3af', fontSize: '8px' }}>Sin link</span>}
+                            </td>
+                          )}
+                          {columnasVisibles.publicacionFinal && (
+                            <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb' }}>
+                              {pub.miniaturaUrl ? <a href={pub.miniaturaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '8px' }}>Ver enlace</a> : <span style={{ color: '#9ca3af', fontSize: '8px' }}>Sin link</span>}
                             </td>
                           )}
                           {columnasVisibles.notas && <td style={{ padding: '5px 8px', border: '1px solid #e5e7eb', color: '#6b7280', fontSize: '8px' }}>{pub.notas ? pub.notas.substring(0, 80) + (pub.notas.length > 80 ? '...' : '') : 'Sin notas'}</td>}

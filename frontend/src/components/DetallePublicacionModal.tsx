@@ -33,13 +33,13 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const [responsableId, setResponsableId] = useState(publicacion.responsableId || '');
   const [horaPublicacion, setHoraPublicacion] = useState(publicacion.horaPublicacion || '');
   const [miniaturaUrl, setMiniaturaUrl] = useState(publicacion.miniaturaUrl || '');
-  
+
   const [usuarios, setUsuarios] = useState<any[]>([]);
-  
+
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -119,7 +119,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const usrActual = api.getUsuarioActual();
     const esEditor = usrActual?.rol === 'EDITOR';
 
@@ -140,8 +140,8 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     setError(null);
 
     try {
-      const fProg = esEditor 
-        ? new Date(fechaEntrega).toISOString() 
+      const fProg = esEditor
+        ? new Date(fechaEntrega).toISOString()
         : new Date(fechaPublicacion).toISOString();
 
       await api.updatePublicacion(publicacion.id, {
@@ -184,7 +184,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const applyFormat = (command: 'bold' | 'italic' | 'underline' | 'list') => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
-    
+
     let parent: Node | null = selection.anchorNode;
     let isInsideEditor = false;
     while (parent) {
@@ -205,7 +205,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         li.innerHTML = '<br>';
         ul.appendChild(li);
         range.insertNode(ul);
-        
+
         const newRange = document.createRange();
         newRange.setStart(li, 0);
         newRange.collapse(true);
@@ -225,12 +225,12 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
         underline: 'u'
       };
       const tagName = tagMap[command];
-      
+
       if (range.collapsed) {
         const el = document.createElement(tagName);
-        el.innerHTML = '&#8203;'; 
+        el.innerHTML = '&#8203;';
         range.insertNode(el);
-        
+
         const newRange = document.createRange();
         newRange.setStart(el.firstChild!, 1);
         newRange.collapse(true);
@@ -469,7 +469,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label>Miniatura del Video (URL de Imagen)</label>
+              <label>Enlace De Publicacion Final</label>
               <input
                 type="url"
                 value={miniaturaUrl}
@@ -505,7 +505,7 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           <div className="form-column-right">
             <div className="form-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <label>Guión / Texto del Post (Rich Editor)</label>
-              
+
               {/* Barra de herramientas simulada para el editor de texto enriquecido */}
               {!readOnly && (
                 <div className="rich-editor-toolbar">
