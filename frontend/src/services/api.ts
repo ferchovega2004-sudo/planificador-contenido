@@ -217,7 +217,11 @@ export const api = {
 
   async cambiarPassword(usuarioId: number | string, nuevaContrasena: string): Promise<void> {
     const currentUsr = this.getUsuarioActual();
-    if (currentUsr && currentUsr.id === usuarioId) {
+    if (!currentUsr) {
+      throw new Error('No hay sesión de usuario activa.');
+    }
+
+    if (currentUsr.id === usuarioId) {
       // El usuario actual puede cambiar su propia contraseña en Supabase Auth
       const { error } = await supabase.auth.updateUser({
         password: nuevaContrasena,
@@ -226,9 +230,19 @@ export const api = {
         throw new Error(error.message || 'Error al cambiar contraseña');
       }
     } else {
-      throw new Error(
-        'Por seguridad, solo el usuario autenticado puede cambiar su propia contraseña. Para restablecer contraseñas de otros usuarios, hágalo desde el panel de control de Supabase.'
-      );
+      // Si el usuario es ADMIN, puede cambiar la de otros usando el RPC seguro
+      if (currentUsr.rol !== 'ADMIN') {
+        throw new Error('Por seguridad, solo los administradores pueden cambiar contraseñas de otros usuarios.');
+      }
+
+      const { error } = await supabase.rpc('admin_cambiar_password', {
+        target_user_id: usuarioId,
+        nueva_contrasena: nuevaContrasena
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Error al cambiar la contraseña del usuario.');
+      }
     }
   },
 

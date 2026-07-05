@@ -35,3 +35,36 @@ CREATE POLICY "Permitir eliminar usuarios"
     FOR DELETE
     TO authenticated
     USING (true);
+
+-- =============================================================
+-- NUEVA FUNCIÓN RPC: Cambiar contraseña de otros usuarios (ADMIN)
+-- Ejecutar en el SQL Editor de Supabase
+-- =============================================================
+CREATE OR REPLACE FUNCTION public.admin_cambiar_password(
+    target_user_id UUID,
+    nueva_contrasena TEXT
+)
+RETURNS VOID AS $$
+DECLARE
+    caller_role TEXT;
+BEGIN
+    -- 1. Obtener el rol del usuario que está invocando la función (auth.uid())
+    SELECT rol INTO caller_role FROM public.usuarios WHERE id = auth.uid();
+    
+    -- 2. Validar que quien ejecuta la función sea realmente un ADMINISTRADOR
+    IF caller_role IS NULL OR caller_role <> 'ADMIN' THEN
+        RAISE EXCEPTION 'No autorizado. Solo los administradores pueden cambiar la contraseña de otros usuarios.';
+    END IF;
+    
+    -- 3. Validar longitud mínima de la contraseña
+    IF length(nueva_contrasena) < 6 THEN
+        RAISE EXCEPTION 'La contraseña debe tener al menos 6 caracteres.';
+    END IF;
+
+    -- 4. Actualizar la contraseña en la tabla auth.users usando bcrypt (Blowfish)
+    UPDATE auth.users
+    SET encrypted_password = crypt(nueva_contrasena, gen_salt('bf', 10))
+    WHERE id = target_user_id;
+
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
