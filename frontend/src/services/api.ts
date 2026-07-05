@@ -84,7 +84,7 @@ export const api = {
       username: profile?.username || data.user.email || username,
       nombre: profile?.nombre || 'Miembro del Equipo',
       rol: (profile?.rol as any) || 'USER',
-      activo: profile?.activo !== false,
+      activo: profile?.activo === true,
     };
 
     localStorage.setItem('token', data.session?.access_token || '');
@@ -166,7 +166,7 @@ export const api = {
       username: u.username,
       nombre: u.nombre,
       rol: u.rol,
-      activo: u.activo !== false,
+      activo: u.activo === true,
       createdAt: u.createdAt,
     }));
   },
@@ -199,7 +199,7 @@ export const api = {
       username: u.username,
       nombre: u.nombre,
       rol: u.rol,
-      activo: u.activo !== false,
+      activo: u.activo === true,
       createdAt: u.createdAt,
     }));
   },

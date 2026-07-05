@@ -242,8 +242,8 @@ const UsuariosPage: React.FC = () => {
                         <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', marginTop: '4px' }}>
                           Marcas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna asignada'}
                           {usr.rol === 'ACOMPAÑANTE' && (
-                            <span style={{ color: usr.activo !== false ? '#10b981' : '#f59e0b', marginLeft: '8px', fontWeight: 'bold' }}>
-                              ({usr.activo !== false ? '✍️ Puede Editar' : '👁️ Solo Lectura'})
+                            <span style={{ color: usr.activo === true ? '#10b981' : '#f59e0b', marginLeft: '8px', fontWeight: 'bold' }}>
+                              ({usr.activo === true ? '✍️ Puede Editar' : '👁️ Solo Lectura'})
                             </span>
                           )}
                         </div>
@@ -279,10 +279,10 @@ const UsuariosPage: React.FC = () => {
                               setError(err.message || 'Error al cambiar permiso');
                             }
                           }}
-                          className={`btn-action ${usr.activo !== false ? 'btn-secondary' : 'btn-primary'}`}
-                          style={{ marginRight: '8px', fontSize: '11px', border: usr.activo !== false ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(192, 132, 252, 0.4)' }}
+                          className={`btn-action ${usr.activo === true ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ marginRight: '8px', fontSize: '11px', border: usr.activo === true ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(192, 132, 252, 0.4)' }}
                         >
-                          {usr.activo !== false ? '🔒 Cambiar a Solo Lectura' : '✍️ Permitir Edición'}
+                          {usr.activo === true ? '🔒 Cambiar a Solo Lectura' : '✍️ Permitir Edición'}
                         </button>
                       )}
                       {usr.rol !== 'ADMIN' && (

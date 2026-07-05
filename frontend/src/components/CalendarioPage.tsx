@@ -7,7 +7,8 @@ import ContextMenu from './ContextMenu';
 const puedeEditarCalendario = (usr: Usuario | null): boolean => {
   if (!usr) return false;
   if (usr.rol === 'ADMIN' || usr.rol === 'USER') return true;
-  if (usr.rol === 'ACOMPAÑANTE' && usr.activo !== false) return true;
+  // ACOMPAÑANTE solo puede editar si el admin le habilitó el permiso explícitamente (activo === true)
+  if (usr.rol === 'ACOMPAÑANTE' && usr.activo === true) return true;
   return false;
 };
 
