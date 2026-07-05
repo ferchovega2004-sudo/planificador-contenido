@@ -25,6 +25,8 @@ export interface Publicacion {
   };
   titulo: string;
   fechaProgramada: string;
+  fechaEntrega?: string | null;
+  fechaPublicacion?: string | null;
   estado: 'POR_GRABAR' | 'EDICION' | 'TERMINADO' | 'PUBLICADO';
   guion: string | null;
   driveUrl: string | null;
@@ -403,6 +405,8 @@ export const api = {
       } : { id: 0, nombre: 'Marca Desconocida' },
       titulo: p.titulo,
       fechaProgramada: p.fechaProgramada,
+      fechaEntrega: p.fechaEntrega,
+      fechaPublicacion: p.fechaPublicacion,
       estado: p.estado,
       guion: p.guion,
       driveUrl: p.driveUrl,
@@ -425,6 +429,8 @@ export const api = {
     clienteId: number;
     titulo: string;
     fechaProgramada: string;
+    fechaEntrega?: string | null;
+    fechaPublicacion?: string | null;
     estado?: string;
     guion?: string;
     driveUrl?: string;
@@ -453,6 +459,8 @@ export const api = {
       } : { id: 0, nombre: 'Marca Desconocida' },
       titulo: resData.titulo,
       fechaProgramada: resData.fechaProgramada,
+      fechaEntrega: resData.fechaEntrega,
+      fechaPublicacion: resData.fechaPublicacion,
       estado: resData.estado,
       guion: resData.guion,
       driveUrl: resData.driveUrl,
@@ -497,6 +505,8 @@ export const api = {
       } : { id: 0, nombre: 'Marca Desconocida' },
       titulo: resData.titulo,
       fechaProgramada: resData.fechaProgramada,
+      fechaEntrega: resData.fechaEntrega,
+      fechaPublicacion: resData.fechaPublicacion,
       estado: resData.estado,
       guion: resData.guion,
       driveUrl: resData.driveUrl,

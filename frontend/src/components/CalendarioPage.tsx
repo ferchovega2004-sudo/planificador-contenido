@@ -173,6 +173,9 @@ const CalendarioPage: React.FC = () => {
   const terminadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'TERMINADO').length;
   const publicadasKpis = publicacionesKpisFiltradas.filter(p => p.estado === 'PUBLICADO').length;
 
+  const usrActual = api.getUsuarioActual();
+  const esEditor = usrActual?.rol === 'EDITOR';
+
   // Estado para el menú contextual
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pub: Publicacion } | null>(null);
 
@@ -242,7 +245,7 @@ const CalendarioPage: React.FC = () => {
         { label: 'Por Grabar', onClick: () => handleCambiarEstado(contextMenu.pub, 'POR_GRABAR') },
         { label: 'En Edición', onClick: () => handleCambiarEstado(contextMenu.pub, 'EDICION') },
         { label: 'Terminado', onClick: () => handleCambiarEstado(contextMenu.pub, 'TERMINADO') },
-        { label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }
+        ...(!esEditor ? [{ label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }] : [])
       ]
     },
     {
@@ -544,19 +547,21 @@ const CalendarioPage: React.FC = () => {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terminadas</span>
           <span style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>{terminadasKpis}</span>
         </div>
-        <div className="kpi-card" style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          borderLeft: '4px solid #ec4899',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px'
-        }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
-          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
-        </div>
+        {!esEditor && (
+          <div className="kpi-card" style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderLeft: '4px solid #ec4899',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
+            <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
+          </div>
+        )}
       </div>
 
       {error && (

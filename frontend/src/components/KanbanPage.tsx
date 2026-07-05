@@ -178,8 +178,11 @@ const KanbanPage: React.FC = () => {
   const terminadasKpis = publicacionesFiltradas.filter(p => p.estado === 'TERMINADO').length;
   const publicadasKpis = publicacionesFiltradas.filter(p => p.estado === 'PUBLICADO').length;
 
+  const usrActual = api.getUsuarioActual();
+  const esEditor = usrActual?.rol === 'EDITOR';
+
   // Agrupar publicaciones por estado
-  const columnas = {
+  const columnas: any = {
     POR_GRABAR: {
       titulo: 'Por grabar',
       items: publicacionesFiltradas.filter((p) => p.estado === 'POR_GRABAR')
@@ -191,12 +194,15 @@ const KanbanPage: React.FC = () => {
     TERMINADO: {
       titulo: 'Terminado',
       items: publicacionesFiltradas.filter((p) => p.estado === 'TERMINADO')
-    },
-    PUBLICADO: {
-      titulo: 'Publicado',
-      items: publicacionesFiltradas.filter((p) => p.estado === 'PUBLICADO')
     }
   };
+
+  if (!esEditor) {
+    columnas.PUBLICADO = {
+      titulo: 'Publicado',
+      items: publicacionesFiltradas.filter((p) => p.estado === 'PUBLICADO')
+    };
+  }
 
   // Estado para el menú contextual
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pub: Publicacion } | null>(null);
@@ -267,7 +273,7 @@ const KanbanPage: React.FC = () => {
         { label: 'Por Grabar', onClick: () => handleCambiarEstado(contextMenu.pub, 'POR_GRABAR') },
         { label: 'En Edición', onClick: () => handleCambiarEstado(contextMenu.pub, 'EDICION') },
         { label: 'Terminado', onClick: () => handleCambiarEstado(contextMenu.pub, 'TERMINADO') },
-        { label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }
+        ...(!esEditor ? [{ label: 'Publicado', onClick: () => handleCambiarEstado(contextMenu.pub, 'PUBLICADO') }] : [])
       ]
     },
     {
@@ -299,6 +305,8 @@ const KanbanPage: React.FC = () => {
 
     const id = parseInt(idStr);
     if (isNaN(id)) return;
+
+    if (esEditor && nuevoEstado === 'PUBLICADO') return;
 
     // Buscar si ya tiene ese estado para ahorrar consulta
     const pub = publicaciones.find((p) => p.id === id);
@@ -511,19 +519,21 @@ const KanbanPage: React.FC = () => {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terminadas</span>
           <span style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>{terminadasKpis}</span>
         </div>
-        <div className="kpi-card" style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          borderLeft: '4px solid #ec4899',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px'
-        }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
-          <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
-        </div>
+        {!esEditor && (
+          <div className="kpi-card" style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderLeft: '4px solid #ec4899',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Publicadas</span>
+            <span style={{ fontSize: '20px', fontWeight: '800', color: '#ec4899' }}>{publicadasKpis}</span>
+          </div>
+        )}
       </div>
 
       {error && (

@@ -22,6 +22,8 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 }) => {
   const [titulo, setTitulo] = useState(publicacion.titulo);
   const [fecha, setFecha] = useState('');
+  const [fechaEntrega, setFechaEntrega] = useState('');
+  const [fechaPublicacion, setFechaPublicacion] = useState('');
   const [estado, setEstado] = useState(publicacion.estado);
   const [guion, setGuion] = useState(publicacion.guion || '');
   const [driveUrl, setDriveUrl] = useState(publicacion.driveUrl || '');
@@ -50,6 +52,36 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       setFecha(`${year}-${month}-${day}`);
+    }
+
+    // Mapear fechaEntrega
+    if (publicacion.fechaEntrega) {
+      const d = new Date(publicacion.fechaEntrega);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      setFechaEntrega(`${year}-${month}-${day}`);
+    } else if (publicacion.fechaProgramada) {
+      const d = new Date(publicacion.fechaProgramada);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      setFechaEntrega(`${year}-${month}-${day}`);
+    }
+
+    // Mapear fechaPublicacion
+    if (publicacion.fechaPublicacion) {
+      const d = new Date(publicacion.fechaPublicacion);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      setFechaPublicacion(`${year}-${month}-${day}`);
+    } else if (publicacion.fechaProgramada) {
+      const d = new Date(publicacion.fechaProgramada);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      setFechaPublicacion(`${year}-${month}-${day}`);
     }
   }, [publicacion]);
 
@@ -87,8 +119,20 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim() || !fecha) {
-      setError('El título y la fecha son campos obligatorios');
+    
+    const usrActual = api.getUsuarioActual();
+    const esEditor = usrActual?.rol === 'EDITOR';
+
+    if (!titulo.trim()) {
+      setError('El título es un campo obligatorio');
+      return;
+    }
+    if (esEditor && !fechaEntrega) {
+      setError('La fecha de entrega es obligatoria');
+      return;
+    }
+    if (!esEditor && (!fechaEntrega || !fechaPublicacion)) {
+      setError('La fecha de entrega y la fecha de publicación son obligatorias');
       return;
     }
 
@@ -96,9 +140,15 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     setError(null);
 
     try {
+      const fProg = esEditor 
+        ? new Date(fechaEntrega).toISOString() 
+        : new Date(fechaPublicacion).toISOString();
+
       await api.updatePublicacion(publicacion.id, {
         titulo: titulo.trim(),
-        fechaProgramada: new Date(fecha).toISOString(),
+        fechaProgramada: fProg,
+        fechaEntrega: fechaEntrega ? new Date(fechaEntrega).toISOString() : null,
+        fechaPublicacion: fechaPublicacion ? new Date(fechaPublicacion).toISOString() : null,
         estado,
         guion: guion.trim(),
         driveUrl: driveUrl.trim(),
@@ -273,91 +323,121 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Fecha de Publicación</label>
-                <input
-                  type="date"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                  required
-                  disabled={guardando || readOnly}
-                />
-              </div>
+            {(() => {
+              const usrActual = api.getUsuarioActual();
+              const esEditor = usrActual?.rol === 'EDITOR';
 
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Hora de Publicación</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={formatTimeDisplay(horaPublicacion)}
-                    onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
-                    readOnly
-                    placeholder="--:--"
-                    disabled={guardando || readOnly}
-                    style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
-                  />
-                  <span
-                    onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      cursor: readOnly ? 'default' : 'pointer',
-                      color: 'var(--text-muted)',
-                      fontSize: '13px',
-                      userSelect: 'none'
-                    }}
-                  >
-                    🕒
-                  </span>
-                </div>
-              </div>
-            </div>
+              return (
+                <>
+                  <div className="form-row">
+                    {/* Fecha de Entrega: Siempre visible */}
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Fecha de Entrega</label>
+                      <input
+                        type="date"
+                        value={fechaEntrega}
+                        onChange={(e) => setFechaEntrega(e.target.value)}
+                        required
+                        disabled={guardando || readOnly}
+                      />
+                    </div>
 
-            <div className="form-row">
-              <div className="form-group" style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <label style={{ margin: 0 }}>Estado de Producción</label>
-                  <span style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
-                    boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
-                    display: 'inline-block',
-                    transition: 'all 0.3s ease'
-                  }} />
-                </div>
-                <select
-                  value={estado}
-                  onChange={(e) => setEstado(e.target.value as any)}
-                  disabled={guardando || readOnly}
-                >
-                  <option value="POR_GRABAR">Por grabar</option>
-                  <option value="EDICION">En proceso de edición</option>
-                  <option value="TERMINADO">Terminado</option>
-                  <option value="PUBLICADO">Publicado</option>
-                </select>
-              </div>
+                    {/* Fecha de Publicación: Oculta para Editor */}
+                    {!esEditor && (
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Fecha de Publicación</label>
+                        <input
+                          type="date"
+                          value={fechaPublicacion}
+                          onChange={(e) => setFechaPublicacion(e.target.value)}
+                          required
+                          disabled={guardando || readOnly}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Responsable</label>
-                <select
-                  value={responsableId}
-                  onChange={(e) => setResponsableId(e.target.value)}
-                  disabled={guardando || readOnly}
-                >
-                  <option value="">Asignar miembro del equipo</option>
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                  <div className="form-row">
+                    {/* Hora de Publicación: Oculta para Editor */}
+                    {!esEditor && (
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Hora de Publicación</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            value={formatTimeDisplay(horaPublicacion)}
+                            onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                            readOnly
+                            placeholder="--:--"
+                            disabled={guardando || readOnly}
+                            style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
+                          />
+                          <span
+                            onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              cursor: readOnly ? 'default' : 'pointer',
+                              color: 'var(--text-muted)',
+                              fontSize: '13px',
+                              userSelect: 'none'
+                            }}
+                          >
+                            🕒
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {esEditor && <div className="form-group" style={{ flex: 1 }}></div>}
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <label style={{ margin: 0 }}>Estado de Producción</label>
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
+                          boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
+                          display: 'inline-block',
+                          transition: 'all 0.3s ease'
+                        }} />
+                      </div>
+                      <select
+                        value={estado}
+                        onChange={(e) => setEstado(e.target.value as any)}
+                        disabled={guardando || readOnly}
+                      >
+                        <option value="POR_GRABAR">Por grabar</option>
+                        <option value="EDICION">En proceso de edición</option>
+                        <option value="TERMINADO">Terminado</option>
+                        {!esEditor && <option value="PUBLICADO">Publicado</option>}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Responsable</label>
+                      <select
+                        value={responsableId}
+                        onChange={(e) => setResponsableId(e.target.value)}
+                        disabled={guardando || readOnly}
+                      >
+                        <option value="">Asignar miembro del equipo</option>
+                        {usuarios.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             <div className="form-group">
               <label>Enlace de Google Drive (Material / Video Crudo)</label>
