@@ -73,7 +73,7 @@ export const api = {
       .select('*')
       .eq('id', data.user.id)
       .is('deletedAt', null)
-      .single();
+      .maybeSingle();
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.warn('Error al obtener perfil extendido:', profileError.message);
@@ -596,7 +596,7 @@ export const api = {
       .select('*')
       .eq('id', id)
       .is('deletedAt', null)
-      .single();
+      .maybeSingle();
 
     if (error) {
       return null;

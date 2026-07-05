@@ -7,16 +7,21 @@ import ContextMenu from './ContextMenu';
 const puedeEditarCalendario = (usr: Usuario | null): boolean => {
   if (!usr) return false;
   if (usr.rol === 'ADMIN' || usr.rol === 'USER') return true;
-  // ACOMPAÑANTE solo puede editar si el admin le habilitó el permiso explícitamente (activo === true)
-  if (usr.rol === 'ACOMPAÑANTE' && usr.activo === true) return true;
+  // El Acompañante nunca edita directamente
   return false;
 };
 
 const CalendarioPage: React.FC = () => {
+  const usuarioActual = api.getUsuarioActual();
+  const esAcompanante = usuarioActual?.rol === 'ACOMPAÑANTE';
+  const permitirCalendarioCompleto = esAcompanante && usuarioActual?.activo === true;
+
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fechaReferencia, setFechaReferencia] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>(
+    (esAcompanante && !permitirCalendarioCompleto) ? 'list' : 'month'
+  );
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -459,26 +464,28 @@ const CalendarioPage: React.FC = () => {
           </div>
 
           {/* Cambiador de vista */}
-          <div className="calendar-view-switcher">
-            <button
-              onClick={() => setViewMode('month')}
-              className={`calendar-view-btn ${viewMode === 'month' ? 'active' : ''}`}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`calendar-view-btn ${viewMode === 'week' ? 'active' : ''}`}
-            >
-              Semana
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`calendar-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            >
-              Lista
-            </button>
-          </div>
+          {(!esAcompanante || permitirCalendarioCompleto) && (
+            <div className="calendar-view-switcher">
+              <button
+                onClick={() => setViewMode('month')}
+                className={`calendar-view-btn ${viewMode === 'month' ? 'active' : ''}`}
+              >
+                Mes
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`calendar-view-btn ${viewMode === 'week' ? 'active' : ''}`}
+              >
+                Semana
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`calendar-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              >
+                Lista
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -621,13 +628,21 @@ const CalendarioPage: React.FC = () => {
                         <div
                           key={pub.id}
                           className={`calendar-pub-card ${classEstados[pub.estado]}`}
-                          draggable={puedeEditarCalendario(api.getUsuarioActual())}
+                          draggable={!esAcompanante && puedeEditarCalendario(api.getUsuarioActual())}
                           onDragStart={(e) => handleDragStart(e, pub.id)}
-                          onContextMenu={(e) => handleContextMenu(e, pub)}
+                          onContextMenu={(e) => {
+                            if (esAcompanante) {
+                              e.preventDefault();
+                              return;
+                            }
+                            handleContextMenu(e, pub);
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (esAcompanante) return;
                             setSelectedPub(pub);
                           }}
+                          style={{ cursor: esAcompanante ? 'default' : 'pointer' }}
                         >
                           <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: '2px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--neon-pink)' }}>
@@ -734,9 +749,18 @@ const CalendarioPage: React.FC = () => {
                         return (
                           <tr
                             key={pub.id}
-                            style={{ cursor: 'pointer' }}
-                            onContextMenu={(e) => handleContextMenu(e, pub)}
-                            onClick={() => setSelectedPub(pub)}
+                            style={{ cursor: esAcompanante ? 'default' : 'pointer' }}
+                            onContextMenu={(e) => {
+                              if (esAcompanante) {
+                                e.preventDefault();
+                                return;
+                              }
+                              handleContextMenu(e, pub);
+                            }}
+                            onClick={() => {
+                              if (esAcompanante) return;
+                              setSelectedPub(pub);
+                            }}
                           >
                             <td style={{ textTransform: 'capitalize' }}>{fechaFormateada}</td>
                             <td>

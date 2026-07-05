@@ -243,7 +243,7 @@ const UsuariosPage: React.FC = () => {
                           Marcas: {marcasPermitidasMap[usr.id]?.join(', ') || 'Ninguna asignada'}
                           {usr.rol === 'ACOMPAÑANTE' && (
                             <span style={{ color: usr.activo === true ? '#10b981' : '#f59e0b', marginLeft: '8px', fontWeight: 'bold' }}>
-                              ({usr.activo === true ? '✍️ Puede Editar' : '👁️ Solo Lectura'})
+                              ({usr.activo === true ? '📅 Calendario Completo' : '📋 Solo Lista'})
                             </span>
                           )}
                         </div>
@@ -273,7 +273,7 @@ const UsuariosPage: React.FC = () => {
                             try {
                               const nuevoEstado = !usr.activo;
                               await api.toggleAccesoUsuario(usr.id, nuevoEstado);
-                              setSuccessMsg(`Permiso de edición de ${usr.nombre} ${nuevoEstado ? 'habilitado' : 'deshabilitado'}`);
+                              setSuccessMsg(`Acceso de calendario para ${usr.nombre} cambiado a: ${nuevoEstado ? 'Calendario Completo' : 'Solo Lista'}`);
                               cargarUsuarios();
                             } catch (err: any) {
                               setError(err.message || 'Error al cambiar permiso');
@@ -282,7 +282,7 @@ const UsuariosPage: React.FC = () => {
                           className={`btn-action ${usr.activo === true ? 'btn-secondary' : 'btn-primary'}`}
                           style={{ marginRight: '8px', fontSize: '11px', border: usr.activo === true ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(192, 132, 252, 0.4)' }}
                         >
-                          {usr.activo === true ? '🔒 Cambiar a Solo Lectura' : '✍️ Permitir Edición'}
+                          {usr.activo === true ? '🔒 Restringir a Solo Lista' : '🔓 Permitir Calendario Completo'}
                         </button>
                       )}
                       {usr.rol !== 'ADMIN' && (
