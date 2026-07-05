@@ -13,6 +13,7 @@ function App(): React.JSX.Element {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [activeTab, setActiveTab] = useState<'calendario' | 'kanban' | 'clientes' | 'usuarios' | 'reportes' | 'papelera'>('calendario');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
 
   const handleSelectTab = (tab: 'calendario' | 'kanban' | 'clientes' | 'usuarios' | 'reportes' | 'papelera') => {
     setActiveTab(tab);
@@ -347,6 +348,132 @@ function App(): React.JSX.Element {
         {activeTab === 'reportes' && <ReportesPage />}
         {activeTab === 'papelera' && usuario.rol === 'ADMIN' && <PapeleraTab />}
       </main>
+
+      {/* Barra de Navegación Inferior (Móviles) */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'calendario' ? 'active' : ''}`}
+          onClick={() => handleSelectTab('calendario')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Calendario</span>
+        </button>
+
+        {(usuario.rol === 'ADMIN' || usuario.rol === 'USER' || usuario.rol === 'EDITOR') && (
+          <button 
+            type="button"
+            className={`mobile-nav-item ${activeTab === 'kanban' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('kanban')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+            <span>Kanban</span>
+          </button>
+        )}
+
+        {(usuario.rol === 'ADMIN' || usuario.rol === 'USER') && (
+          <button 
+            type="button"
+            className={`mobile-nav-item ${activeTab === 'clientes' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('clientes')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+            </svg>
+            <span>Marcas</span>
+          </button>
+        )}
+
+        <button 
+          type="button"
+          className={`mobile-nav-item ${isMobileMoreOpen ? 'active' : ''}`}
+          onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="1.5"></circle>
+            <circle cx="19" cy="12" r="1.5"></circle>
+            <circle cx="5" cy="12" r="1.5"></circle>
+          </svg>
+          <span>Más</span>
+        </button>
+      </nav>
+
+      {/* Bottom Sheet de "Más Opciones" en Móviles */}
+      {isMobileMoreOpen && (
+        <div className="mobile-more-backdrop" onClick={() => setIsMobileMoreOpen(false)}>
+          <div className="mobile-more-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-more-header">
+              <div className="mobile-more-drag-handle"></div>
+              <h3>Opciones Generales</h3>
+            </div>
+            
+            <div className="mobile-more-menu">
+              {(usuario.rol === 'ADMIN' || usuario.rol === 'USER') && (
+                <div 
+                  className={`mobile-more-item ${activeTab === 'reportes' ? 'active' : ''}`}
+                  onClick={() => { handleSelectTab('reportes'); setIsMobileMoreOpen(false); }}
+                >
+                  📄 Reportes e Impresión PDF
+                </div>
+              )}
+
+              {usuario.rol === 'ADMIN' && (
+                <div 
+                  className={`mobile-more-item ${activeTab === 'usuarios' ? 'active' : ''}`}
+                  onClick={() => { handleSelectTab('usuarios'); setIsMobileMoreOpen(false); }}
+                >
+                  👥 Administración de Equipo
+                </div>
+              )}
+
+              {usuario.rol === 'ADMIN' && (
+                <div 
+                  className={`mobile-more-item ${activeTab === 'papelera' ? 'active' : ''}`}
+                  onClick={() => { handleSelectTab('papelera'); setIsMobileMoreOpen(false); }}
+                >
+                  🗑️ Papelera de Reciclaje
+                </div>
+              )}
+
+              <div className="mobile-more-divider"></div>
+              
+              <div className="mobile-more-profile">
+                <div className="user-avatar" style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-cyan) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: '800'
+                }}>
+                  {usuario.nombre.substring(0, 2).toUpperCase()}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: '700', color: '#ffffff' }}>{usuario.nombre}</span>
+                  <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{usuario.rol}</span>
+                </div>
+              </div>
+
+              <button onClick={() => { handleLogout(); setIsMobileMoreOpen(false); }} className="mobile-more-logout-btn">
+                🚪 Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

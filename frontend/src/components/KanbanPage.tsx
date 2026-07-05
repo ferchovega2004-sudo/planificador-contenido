@@ -653,6 +653,49 @@ const KanbanPage: React.FC = () => {
                             )}
                           </div>
                           <h4 className="kanban-card-title">{pub.titulo}</h4>
+                          {/* Acciones de cambio de estado rápido para móviles */}
+                          <div className="kanban-card-mobile-actions">
+                            {pub.estado !== 'POR_GRABAR' && (
+                              <button
+                                type="button"
+                                className="kanban-mobile-action-btn tag-por-grabar"
+                                onClick={(e) => { e.stopPropagation(); handleCambiarEstado(pub, 'POR_GRABAR'); }}
+                                title="Mover a Por Grabar"
+                              >
+                                Por Grabar
+                              </button>
+                            )}
+                            {pub.estado !== 'EDICION' && (
+                              <button
+                                type="button"
+                                className="kanban-mobile-action-btn tag-edicion"
+                                onClick={(e) => { e.stopPropagation(); handleCambiarEstado(pub, 'EDICION'); }}
+                                title="Mover a Edición"
+                              >
+                                En Edición
+                              </button>
+                            )}
+                            {pub.estado !== 'TERMINADO' && (
+                              <button
+                                type="button"
+                                className="kanban-mobile-action-btn tag-terminado"
+                                onClick={(e) => { e.stopPropagation(); handleCambiarEstado(pub, 'TERMINADO'); }}
+                                title="Mover a Terminado"
+                              >
+                                Terminado
+                              </button>
+                            )}
+                            {!esEditor && pub.estado !== 'PUBLICADO' && (
+                              <button
+                                type="button"
+                                className="kanban-mobile-action-btn tag-publicado"
+                                onClick={(e) => { e.stopPropagation(); handleCambiarEstado(pub, 'PUBLICADO'); }}
+                                title="Mover a Publicado"
+                              >
+                                Publicar
+                              </button>
+                            )}
+                          </div>
                           <div className="kanban-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                             <span className="kanban-card-date">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>

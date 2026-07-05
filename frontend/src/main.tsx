@@ -42,6 +42,15 @@ const bootstrap = async (): Promise<void> => {
       </StrictMode>
     )
   }
+
+  // Registrar Service Worker para capacidades PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('[PWA] Service Worker registrado con éxito', reg))
+        .catch(err => console.warn('[PWA] Fallo al registrar el Service Worker', err));
+    });
+  }
 }
 
 bootstrap()
