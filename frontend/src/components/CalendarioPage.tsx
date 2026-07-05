@@ -14,14 +14,12 @@ const puedeEditarCalendario = (usr: Usuario | null): boolean => {
 const CalendarioPage: React.FC = () => {
   const usuarioActual = api.getUsuarioActual();
   const esAcompanante = usuarioActual?.rol === 'ACOMPAÑANTE';
-  const permitirCalendarioCompleto = esAcompanante && usuarioActual?.activo === true;
+  const puedeVerDetalles = !esAcompanante || usuarioActual?.activo === true;
 
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fechaReferencia, setFechaReferencia] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>(
-    (esAcompanante && !permitirCalendarioCompleto) ? 'list' : 'month'
-  );
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -464,28 +462,26 @@ const CalendarioPage: React.FC = () => {
           </div>
 
           {/* Cambiador de vista */}
-          {(!esAcompanante || permitirCalendarioCompleto) && (
-            <div className="calendar-view-switcher">
-              <button
-                onClick={() => setViewMode('month')}
-                className={`calendar-view-btn ${viewMode === 'month' ? 'active' : ''}`}
-              >
-                Mes
-              </button>
-              <button
-                onClick={() => setViewMode('week')}
-                className={`calendar-view-btn ${viewMode === 'week' ? 'active' : ''}`}
-              >
-                Semana
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`calendar-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              >
-                Lista
-              </button>
-            </div>
-          )}
+          <div className="calendar-view-switcher">
+            <button
+              onClick={() => setViewMode('month')}
+              className={`calendar-view-btn ${viewMode === 'month' ? 'active' : ''}`}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`calendar-view-btn ${viewMode === 'week' ? 'active' : ''}`}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`calendar-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            >
+              Lista
+            </button>
+          </div>
         </div>
       </div>
 
@@ -639,10 +635,10 @@ const CalendarioPage: React.FC = () => {
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (esAcompanante) return;
+                            if (!puedeVerDetalles) return;
                             setSelectedPub(pub);
                           }}
-                          style={{ cursor: esAcompanante ? 'default' : 'pointer' }}
+                          style={{ cursor: puedeVerDetalles ? 'pointer' : 'default' }}
                         >
                           <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: '2px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--neon-pink)' }}>
@@ -749,7 +745,7 @@ const CalendarioPage: React.FC = () => {
                         return (
                           <tr
                             key={pub.id}
-                            style={{ cursor: esAcompanante ? 'default' : 'pointer' }}
+                            style={{ cursor: puedeVerDetalles ? 'pointer' : 'default' }}
                             onContextMenu={(e) => {
                               if (esAcompanante) {
                                 e.preventDefault();
@@ -758,7 +754,7 @@ const CalendarioPage: React.FC = () => {
                               handleContextMenu(e, pub);
                             }}
                             onClick={() => {
-                              if (esAcompanante) return;
+                              if (!puedeVerDetalles) return;
                               setSelectedPub(pub);
                             }}
                           >
