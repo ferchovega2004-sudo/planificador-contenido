@@ -20,7 +20,9 @@ const CalendarioPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fechaReferencia, setFechaReferencia] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>(() => {
+    return window.innerWidth <= 768 ? 'list' : 'month';
+  });
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1768,5 +1768,248 @@ input[type="radio"]:checked::before {
   transform: scale(1);
 }
 
+/* =============================================================
+   ESTILOS RESPONSIVOS PARA MÓVILES (Media Queries)
+   ============================================================= */
+
+/* Elementos móviles ocultos por defecto en escritorio */
+.mobile-header {
+  display: none;
+}
+
+.mobile-sidebar-overlay {
+  display: none;
+}
+
+.kanban-mobile-tabs {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #root {
+    flex-direction: column !important;
+  }
+
+  .app-container {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Cabecera Móvil */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    background-color: var(--surface-card);
+    border-bottom: 1px solid rgba(192, 132, 252, 0.12);
+    padding: 0 16px;
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-toggle {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .mobile-menu-toggle:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .mobile-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .mobile-header-brand img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  /* Overlay de fondo */
+  .mobile-sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(5, 4, 9, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 15;
+  }
+
+  /* Sidebar Drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Oculto a la izquierda */
+    width: 280px;
+    height: 100vh;
+    z-index: 30;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0; /* Desliza a la vista */
+  }
+
+  /* Layout principal del contenido */
+  .main-content {
+    height: calc(100vh - 60px); /* Restar la cabecera móvil */
+    padding: 0;
+  }
+
+  .page-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .page-header > div:last-child {
+    width: 100%;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .page-header .filter-select,
+  .page-header .search-bar,
+  .page-header button,
+  .page-header select {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .search-bar {
+    width: 100% !important;
+  }
+
+  /* Split Layout (CRUDs) */
+  .split-layout {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .split-main, .split-sidebar {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  /* Tablas Responsivas */
+  .table-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .table {
+    min-width: 600px; /* Scroll horizontal para que no se amontone */
+  }
+
+  /* Kanban Móvil con Tabs */
+  .kanban-mobile-tabs {
+    display: flex;
+    background-color: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 4px;
+    width: 100%;
+    margin-bottom: 8px;
+    overflow-x: auto;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+
+  .kanban-mobile-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .kanban-mobile-tab-btn.active {
+    background: linear-gradient(135deg, var(--cyber-blue) 0%, var(--neon-cyan) 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(192, 132, 252, 0.2);
+  }
+
+  .kanban-board {
+    grid-template-columns: 1fr !important; /* Una sola columna a la vez */
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* Ocultar las columnas que no están activas en móviles */
+  .kanban-column {
+    display: none;
+  }
+
+  .kanban-column.active-mobile-col {
+    display: flex !important;
+    min-height: 350px;
+  }
+
+  /* Modales Responsivos */
+  .modal-content {
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto;
+  }
+
+  .modal-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+
+  .form-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* Calendario scroll en modo mes */
+  .calendar-month-grid {
+    min-width: 650px; /* Evita que el grid mensual se amontone en vertical */
+  }
+
+  /* Reportes y KPIs */
+  .kpi-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
 
 

@@ -45,6 +45,7 @@ const renderPlatformIcon = (plataforma: string) => {
 
 const KanbanPage: React.FC = () => {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
+  const [activeColTab, setActiveColTab] = useState<'POR_GRABAR' | 'EDICION' | 'TERMINADO' | 'PUBLICADO'>('POR_GRABAR');
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteFiltrado, setClienteFiltrado] = useState<number | 'TODOS'>('TODOS');
   const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
@@ -545,20 +546,35 @@ const KanbanPage: React.FC = () => {
       {loading ? (
         <div className="loading-state">Cargando tablero...</div>
       ) : (
-        <div className="kanban-board">
-          {Object.entries(columnas).map(([estadoKey, col]) => {
-            const colAccentColors: Record<string, string> = {
-              POR_GRABAR: '#f59e0b',
-              EDICION: '#06b6d4',
-              TERMINADO: '#10b981',
-              PUBLICADO: '#ec4899'
-            };
-            const isDraggedOver = draggedOverCol === estadoKey;
-
-            return (
-              <div
+        <>
+          {/* Pestañas de columnas para dispositivos móviles */}
+          <div className="kanban-mobile-tabs">
+            {Object.entries(columnas).map(([estadoKey, col]: any) => (
+              <button
                 key={estadoKey}
-                className={`kanban-column ${isDraggedOver ? 'drag-over' : ''}`}
+                type="button"
+                className={`kanban-mobile-tab-btn ${activeColTab === estadoKey ? 'active' : ''}`}
+                onClick={() => setActiveColTab(estadoKey as any)}
+              >
+                {col.titulo} ({col.items.length})
+              </button>
+            ))}
+          </div>
+
+          <div className="kanban-board">
+            {Object.entries(columnas).map(([estadoKey, col]: [string, any]) => {
+              const colAccentColors: Record<string, string> = {
+                POR_GRABAR: '#f59e0b',
+                EDICION: '#06b6d4',
+                TERMINADO: '#10b981',
+                PUBLICADO: '#ec4899'
+              };
+              const isDraggedOver = draggedOverCol === estadoKey;
+
+              return (
+                <div
+                  key={estadoKey}
+                  className={`kanban-column ${isDraggedOver ? 'drag-over' : ''} ${activeColTab === estadoKey ? 'active-mobile-col' : ''}`}
                 onDragOver={handleDragOver}
                 onDragEnter={() => setDraggedOverCol(estadoKey)}
                 onDragLeave={() => setDraggedOverCol(null)}
@@ -598,7 +614,7 @@ const KanbanPage: React.FC = () => {
                   {col.items.length === 0 ? (
                     <div className="kanban-empty-zone">Arrastra aquí</div>
                   ) : (
-                    col.items.map((pub) => {
+                    col.items.map((pub: Publicacion) => {
                       const fechaFormateada = new Date(pub.fechaProgramada).toLocaleDateString('es-ES', {
                         weekday: 'short',
                         day: 'numeric',
@@ -706,7 +722,8 @@ const KanbanPage: React.FC = () => {
             );
           })}
         </div>
-      )}
+      </>
+    )}
 
       {/* Modal para programar publicación rápida */}
       {mostrarCrear && (
