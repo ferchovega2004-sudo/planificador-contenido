@@ -44,6 +44,16 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
   const [showTimePicker, setShowTimePicker] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
 
+  // Estados responsivos móviles
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+  const [activeModalTab, setActiveModalTab] = useState<'general' | 'guion' | 'recursos'>('general');
+
+  useEffect(() => {
+    const handleResize = () => setEsMovil(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     // Formatear fecha para el input datetime-local o date (YYYY-MM-DD)
     if (publicacion.fechaProgramada) {
@@ -85,12 +95,12 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     }
   }, [publicacion]);
 
-  // Inicializar contenido del editor de guion una sola vez
+  // Inicializar contenido del editor de guion al cambiar de pestaña o de publicación
   useEffect(() => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = publicacion.guion || '';
+      editorRef.current.innerHTML = guion || '';
     }
-  }, [publicacion.id]);
+  }, [publicacion.id, activeModalTab]);
 
   // Cargar lista de usuarios del equipo
   useEffect(() => {
@@ -275,302 +285,670 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleGuardar} className="modal-form-grid">
-          {/* Columna Izquierda: Información Básica */}
-          <div className="form-column-left">
-            <div className="form-group">
-              <label>Título del Video / Publicación</label>
-              <input
-                type="text"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ej: Video de reels promocional"
-                required
-                disabled={guardando || readOnly}
-              />
-            </div>
+        {/* Barra de pestañas horizontal visible solo en celular */}
+        {esMovil && (
+          <div className="modal-mobile-tabs" style={{
+            display: 'flex',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: '16px',
+            overflowX: 'auto',
+            gap: '4px',
+            padding: '0 16px',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)'
+          }}>
+            <button
+              type="button"
+              className={`modal-mobile-tab-btn ${activeModalTab === 'general' ? 'active' : ''}`}
+              onClick={() => setActiveModalTab('general')}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                color: activeModalTab === 'general' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                fontWeight: '800',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                padding: '12px 8px',
+                borderBottom: activeModalTab === 'general' ? '2.5px solid var(--neon-cyan)' : '2.5px solid transparent',
+                cursor: 'pointer',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              💼 Datos
+            </button>
+            <button
+              type="button"
+              className={`modal-mobile-tab-btn ${activeModalTab === 'guion' ? 'active' : ''}`}
+              onClick={() => setActiveModalTab('guion')}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                color: activeModalTab === 'guion' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                fontWeight: '800',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                padding: '12px 8px',
+                borderBottom: activeModalTab === 'guion' ? '2.5px solid var(--neon-cyan)' : '2.5px solid transparent',
+                cursor: 'pointer',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              ✍️ Guión
+            </button>
+            <button
+              type="button"
+              className={`modal-mobile-tab-btn ${activeModalTab === 'recursos' ? 'active' : ''}`}
+              onClick={() => setActiveModalTab('recursos')}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                color: activeModalTab === 'recursos' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                fontWeight: '800',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                padding: '12px 8px',
+                borderBottom: activeModalTab === 'recursos' ? '2.5px solid var(--neon-cyan)' : '2.5px solid transparent',
+                cursor: 'pointer',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🔗 Recursos
+            </button>
+          </div>
+        )}
 
-            <div className="form-row">
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Marca / Negocio</label>
-                <select
-                  value={clienteId}
-                  onChange={(e) => setClienteId(Number(e.target.value))}
-                  disabled={guardando || readOnly}
-                >
-                  {clientesList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Plataforma</label>
-                <select
-                  value={plataforma}
-                  onChange={(e) => setPlataforma(e.target.value)}
-                  disabled={guardando || readOnly}
-                >
-                  <option value="">Seleccionar plataforma</option>
-                  <option value="INSTAGRAM">Instagram</option>
-                  <option value="TIKTOK">TikTok</option>
-                  <option value="YOUTUBE">YouTube Shorts</option>
-                  <option value="FACEBOOK">Facebook</option>
-                  <option value="OTRO">Otro / Web</option>
-                </select>
-              </div>
-            </div>
-
-            {(() => {
-              const usrActual = api.getUsuarioActual();
-              const esEditor = usrActual?.rol === 'EDITOR';
-
-              return (
-                <>
-                  <div className="form-row">
-                    {/* Fecha de Entrega: Siempre visible */}
-                    <div className="form-group" style={{ flex: 1 }}>
-                      <label>Fecha de Entrega</label>
-                      <input
-                        type="date"
-                        value={fechaEntrega}
-                        onChange={(e) => setFechaEntrega(e.target.value)}
-                        required
-                        disabled={guardando || readOnly}
-                      />
-                    </div>
-
-                    {/* Fecha de Publicación: Oculta para Editor */}
-                    {!esEditor && (
-                      <div className="form-group" style={{ flex: 1 }}>
-                        <label>Fecha de Publicación</label>
-                        <input
-                          type="date"
-                          value={fechaPublicacion}
-                          onChange={(e) => setFechaPublicacion(e.target.value)}
-                          required
-                          disabled={guardando || readOnly}
-                        />
-                      </div>
-                    )}
+        <form onSubmit={handleGuardar} className="modal-form-grid" style={{ display: esMovil ? 'block' : undefined }}>
+          {esMovil ? (
+            /* ==========================================
+               VISTA MÓVIL PESTAÑIZADA (Una sección a la vez)
+               ========================================== */
+            <>
+              {activeModalTab === 'general' && (
+                <div className="mobile-tab-content">
+                  <div className="form-group">
+                    <label>Título del Video / Publicación</label>
+                    <input
+                      type="text"
+                      value={titulo}
+                      onChange={(e) => setTitulo(e.target.value)}
+                      placeholder="Ej: Video de reels promocional"
+                      required
+                      disabled={guardando || readOnly}
+                    />
                   </div>
 
-                  <div className="form-row">
-                    {/* Hora de Publicación: Oculta para Editor */}
-                    {!esEditor && (
-                      <div className="form-group" style={{ flex: 1 }}>
-                        <label>Hora de Publicación</label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type="text"
-                            value={formatTimeDisplay(horaPublicacion)}
-                            onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
-                            readOnly
-                            placeholder="--:--"
-                            disabled={guardando || readOnly}
-                            style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
-                          />
-                          <span
-                            onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
-                            style={{
-                              position: 'absolute',
-                              right: '12px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              cursor: readOnly ? 'default' : 'pointer',
-                              color: 'var(--text-muted)',
-                              fontSize: '13px',
-                              userSelect: 'none'
-                            }}
-                          >
-                            🕒
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {esEditor && <div className="form-group" style={{ flex: 1 }}></div>}
-                  </div>
-
-                  <div className="form-row">
+                  <div className="form-row" style={{ display: 'flex', gap: '12px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <label style={{ margin: 0 }}>Estado de Producción</label>
-                        <span style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
-                          boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
-                          display: 'inline-block',
-                          transition: 'all 0.3s ease'
-                        }} />
-                      </div>
+                      <label>Marca / Negocio</label>
                       <select
-                        value={estado}
-                        onChange={(e) => setEstado(e.target.value as any)}
+                        value={clienteId}
+                        onChange={(e) => setClienteId(Number(e.target.value))}
                         disabled={guardando || readOnly}
                       >
-                        <option value="POR_GRABAR">Por grabar</option>
-                        <option value="EDICION">En proceso de edición</option>
-                        <option value="TERMINADO">Terminado</option>
-                        {!esEditor && <option value="PUBLICADO">Publicado</option>}
-                      </select>
-                    </div>
-
-                    <div className="form-group" style={{ flex: 1 }}>
-                      <label>Responsable</label>
-                      <select
-                        value={responsableId}
-                        onChange={(e) => setResponsableId(e.target.value)}
-                        disabled={guardando || readOnly}
-                      >
-                        <option value="">Asignar miembro del equipo</option>
-                        {usuarios.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.nombre}
+                        {clientesList.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
                           </option>
                         ))}
                       </select>
                     </div>
+
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Plataforma</label>
+                      <select
+                        value={plataforma}
+                        onChange={(e) => setPlataforma(e.target.value)}
+                        disabled={guardando || readOnly}
+                      >
+                        <option value="">Plataforma</option>
+                        <option value="INSTAGRAM">Instagram</option>
+                        <option value="TIKTOK">TikTok</option>
+                        <option value="YOUTUBE">YouTube Shorts</option>
+                        <option value="FACEBOOK">Facebook</option>
+                        <option value="OTRO">Otro / Web</option>
+                      </select>
+                    </div>
                   </div>
-                </>
-              );
-            })()}
 
-            <div className="form-group">
-              <label>Enlace de Google Drive (Material / Video Crudo)</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="url"
-                  value={driveUrl}
-                  onChange={(e) => setDriveUrl(e.target.value)}
-                  placeholder="https://drive.google.com/drive/folders/..."
-                  disabled={guardando || readOnly}
-                  style={{ flex: 1 }}
-                />
-                {driveUrl && (
-                  <button
-                    type="button"
-                    onClick={handleOpenDrive}
-                    className="btn btn-secondary"
-                    style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '12px' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                      <polyline points="15 3 21 3 21 9"></polyline>
-                      <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
-                    Abrir Drive
-                  </button>
-                )}
-              </div>
-            </div>
+                  {(() => {
+                    const usrActual = api.getUsuarioActual();
+                    const esEditor = usrActual?.rol === 'EDITOR';
 
-            <div className="form-group">
-              <label>Enlace De Publicacion Final</label>
-              <input
-                type="url"
-                value={miniaturaUrl}
-                onChange={(e) => setMiniaturaUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/... o enlace de Drive"
-                disabled={guardando || readOnly}
-              />
-              {miniaturaUrl && miniaturaUrl.startsWith('http') && (
-                <div style={{ marginTop: '8px', border: '1px solid rgba(192, 132, 252, 0.25)', borderRadius: '8px', overflow: 'hidden', width: '130px', height: '73px', background: '#000000', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
-                  <img
-                    src={miniaturaUrl}
-                    alt="Miniatura Preview"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    return (
+                      <>
+                        <div className="form-row" style={{ display: 'flex', gap: '12px' }}>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label>Fecha de Entrega</label>
+                            <input
+                              type="date"
+                              value={fechaEntrega}
+                              onChange={(e) => setFechaEntrega(e.target.value)}
+                              required
+                              disabled={guardando || readOnly}
+                            />
+                          </div>
+
+                          {!esEditor && (
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label>Fecha de Pub.</label>
+                              <input
+                                type="date"
+                                value={fechaPublicacion}
+                                onChange={(e) => setFechaPublicacion(e.target.value)}
+                                required
+                                disabled={guardando || readOnly}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="form-row" style={{ display: 'flex', gap: '12px' }}>
+                          {!esEditor && (
+                            <div className="form-group" style={{ flex: 1 }}>
+                              <label>Hora de Publicación</label>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  type="text"
+                                  value={formatTimeDisplay(horaPublicacion)}
+                                  onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                                  readOnly
+                                  placeholder="--:--"
+                                  disabled={guardando || readOnly}
+                                  style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
+                                />
+                                <span
+                                  onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                                  style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    cursor: readOnly ? 'default' : 'pointer',
+                                    color: 'var(--text-muted)',
+                                    fontSize: '13px',
+                                    userSelect: 'none'
+                                  }}
+                                >
+                                  🕒
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {esEditor && <div className="form-group" style={{ flex: 1 }}></div>}
+                        </div>
+
+                        <div className="form-row" style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <label style={{ margin: 0 }}>Estado</label>
+                              <span style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
+                                boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
+                                display: 'inline-block',
+                                transition: 'all 0.3s ease'
+                              }} />
+                            </div>
+                            <select
+                              value={estado}
+                              onChange={(e) => setEstado(e.target.value as any)}
+                              disabled={guardando || readOnly}
+                            >
+                              <option value="POR_GRABAR">Por grabar</option>
+                              <option value="EDICION">En edición</option>
+                              <option value="TERMINADO">Terminado</option>
+                              {!esEditor && <option value="PUBLICADO">Publicado</option>}
+                            </select>
+                          </div>
+
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label>Responsable</label>
+                            <select
+                              value={responsableId}
+                              onChange={(e) => setResponsableId(e.target.value)}
+                              disabled={guardando || readOnly}
+                            >
+                              <option value="">Miembro</option>
+                              {usuarios.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {activeModalTab === 'guion' && (
+                <div className="mobile-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '320px' }}>
+                  <div className="form-group" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <label>Guión / Texto del Post (Rich Editor)</label>
+
+                    {!readOnly && (
+                      <div className="rich-editor-toolbar">
+                        <button
+                          type="button"
+                          title="Negrita"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyFormat('bold')}
+                          style={{ fontWeight: 'bold' }}
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          title="Cursiva"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyFormat('italic')}
+                          style={{ fontStyle: 'italic' }}
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          title="Subrayado"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyFormat('underline')}
+                          style={{ textDecoration: 'underline' }}
+                        >
+                          U
+                        </button>
+                        <button
+                          type="button"
+                          title="Listas"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyFormat('list')}
+                        >
+                          • List
+                        </button>
+                        <span style={{ flex: 1 }}></span>
+                      </div>
+                    )}
+
+                    <div
+                      ref={editorRef}
+                      className="rich-editor-content"
+                      contentEditable={!guardando && !readOnly}
+                      suppressContentEditableWarning
+                      data-placeholder="Escribe el gancho, desarrollo y llamado a la acción..."
+                      onInput={(e) => setGuion(e.currentTarget.innerHTML)}
+                      onBlur={(e) => setGuion(e.currentTarget.innerHTML)}
+                      style={{
+                        flex: 1,
+                        minHeight: '220px',
+                        outline: readOnly ? 'none' : undefined,
+                        cursor: readOnly ? 'default' : 'text'
+                      }}
+                    />
+
+                    <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                      {guion ? guion.replace(/<[^>]*>/g, '').length : 0} caracteres
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeModalTab === 'recursos' && (
+                <div className="mobile-tab-content">
+                  <div className="form-group">
+                    <label>Google Drive (Material / Video Crudo)</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="url"
+                        value={driveUrl}
+                        onChange={(e) => setDriveUrl(e.target.value)}
+                        placeholder="Enlace de Drive"
+                        disabled={guardando || readOnly}
+                        style={{ flex: 1 }}
+                      />
+                      {driveUrl && (
+                        <button
+                          type="button"
+                          onClick={handleOpenDrive}
+                          className="btn btn-secondary"
+                          style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '11px' }}
+                        >
+                          Abrir
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Enlace De Publicacion Final</label>
+                    <input
+                      type="url"
+                      value={miniaturaUrl}
+                      onChange={(e) => setMiniaturaUrl(e.target.value)}
+                      placeholder="Enlace del post finalizado"
+                      disabled={guardando || readOnly}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Notas de Producción</label>
+                    <textarea
+                      value={notas}
+                      onChange={(e) => setNotas(e.target.value)}
+                      placeholder="Comentarios, pautas del cliente o indicaciones..."
+                      rows={4}
+                      disabled={guardando || readOnly}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* ==========================================
+               VISTA DE ESCRITORIO TRADICIONAL (Fija a 2 columnas)
+               ========================================== */
+            <>
+              {/* Columna Izquierda: Información Básica */}
+              <div className="form-column-left">
+                <div className="form-group">
+                  <label>Título del Video / Publicación</label>
+                  <input
+                    type="text"
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                    placeholder="Ej: Video de reels promocional"
+                    required
+                    disabled={guardando || readOnly}
                   />
                 </div>
-              )}
-            </div>
 
-            <div className="form-group">
-              <label>Notas de Producción</label>
-              <textarea
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                placeholder="Escribe comentarios, pautas del cliente o indicaciones para el editor..."
-                rows={3}
-                disabled={guardando || readOnly}
-              />
-            </div>
-          </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Marca / Negocio</label>
+                    <select
+                      value={clienteId}
+                      onChange={(e) => setClienteId(Number(e.target.value))}
+                      disabled={guardando || readOnly}
+                    >
+                      {clientesList.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-          {/* Columna Derecha: Editor de Guion / Copy */}
-          <div className="form-column-right">
-            <div className="form-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <label>Guión / Texto del Post (Rich Editor)</label>
-
-              {/* Barra de herramientas simulada para el editor de texto enriquecido */}
-              {!readOnly && (
-                <div className="rich-editor-toolbar">
-                  <button
-                    type="button"
-                    title="Negrita"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyFormat('bold')}
-                    style={{ fontWeight: 'bold' }}
-                  >
-                    B
-                  </button>
-                  <button
-                    type="button"
-                    title="Cursiva"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyFormat('italic')}
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    I
-                  </button>
-                  <button
-                    type="button"
-                    title="Subrayado"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyFormat('underline')}
-                    style={{ textDecoration: 'underline' }}
-                  >
-                    U
-                  </button>
-                  <button
-                    type="button"
-                    title="Listas"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyFormat('list')}
-                  >
-                    • List
-                  </button>
-                  <span style={{ flex: 1 }}></span>
-                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Plataforma</label>
+                    <select
+                      value={plataforma}
+                      onChange={(e) => setPlataforma(e.target.value)}
+                      disabled={guardando || readOnly}
+                    >
+                      <option value="">Seleccionar plataforma</option>
+                      <option value="INSTAGRAM">Instagram</option>
+                      <option value="TIKTOK">TikTok</option>
+                      <option value="YOUTUBE">YouTube Shorts</option>
+                      <option value="FACEBOOK">Facebook</option>
+                      <option value="OTRO">Otro / Web</option>
+                    </select>
+                  </div>
                 </div>
-              )}
 
-              {/* Contenedor editable para simular el Rich Text Editor */}
-              <div
-                ref={editorRef}
-                className="rich-editor-content"
-                contentEditable={!guardando && !readOnly}
-                suppressContentEditableWarning
-                data-placeholder="Escribe el gancho, desarrollo y llamado a la acción..."
-                onInput={(e) => setGuion(e.currentTarget.innerHTML)}
-                onBlur={(e) => setGuion(e.currentTarget.innerHTML)}
-                style={{
-                  flex: 1,
-                  minHeight: '220px',
-                  outline: readOnly ? 'none' : undefined,
-                  cursor: readOnly ? 'default' : 'text'
-                }}
-              />
+                {(() => {
+                  const usrActual = api.getUsuarioActual();
+                  const esEditor = usrActual?.rol === 'EDITOR';
 
-              <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontFamily: 'Outfit, sans-serif' }}>
-                {guion ? guion.replace(/<[^>]*>/g, '').length : 0} caracteres
+                  return (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>Fecha de Entrega</label>
+                          <input
+                            type="date"
+                            value={fechaEntrega}
+                            onChange={(e) => setFechaEntrega(e.target.value)}
+                            required
+                            disabled={guardando || readOnly}
+                          />
+                        </div>
+
+                        {!esEditor && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label>Fecha de Publicación</label>
+                            <input
+                              type="date"
+                              value={fechaPublicacion}
+                              onChange={(e) => setFechaPublicacion(e.target.value)}
+                              required
+                              disabled={guardando || readOnly}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-row">
+                        {!esEditor && (
+                          <div className="form-group" style={{ flex: 1 }}>
+                            <label>Hora de Publicación</label>
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                type="text"
+                                value={formatTimeDisplay(horaPublicacion)}
+                                onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                                readOnly
+                                placeholder="--:--"
+                                disabled={guardando || readOnly}
+                                style={{ cursor: readOnly ? 'default' : 'pointer', paddingRight: '36px' }}
+                              />
+                              <span
+                                onClick={() => !guardando && !readOnly && setShowTimePicker(true)}
+                                style={{
+                                  position: 'absolute',
+                                  right: '12px',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  cursor: readOnly ? 'default' : 'pointer',
+                                  color: 'var(--text-muted)',
+                                  fontSize: '13px',
+                                  userSelect: 'none'
+                                }}
+                              >
+                                🕒
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {esEditor && <div className="form-group" style={{ flex: 1 }}></div>}
+                      </div>
+
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <label style={{ margin: 0 }}>Estado de Producción</label>
+                            <span style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee',
+                              boxShadow: `0 0 8px ${estado === 'POR_GRABAR' ? '#c084fc' : estado === 'EDICION' ? '#6366f1' : estado === 'TERMINADO' ? '#10b981' : '#22d3ee'}`,
+                              display: 'inline-block',
+                              transition: 'all 0.3s ease'
+                            }} />
+                          </div>
+                          <select
+                            value={estado}
+                            onChange={(e) => setEstado(e.target.value as any)}
+                            disabled={guardando || readOnly}
+                          >
+                            <option value="POR_GRABAR">Por grabar</option>
+                            <option value="EDICION">En proceso de edición</option>
+                            <option value="TERMINADO">Terminado</option>
+                            {!esEditor && <option value="PUBLICADO">Publicado</option>}
+                          </select>
+                        </div>
+
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>Responsable</label>
+                          <select
+                            value={responsableId}
+                            onChange={(e) => setResponsableId(e.target.value)}
+                            disabled={guardando || readOnly}
+                          >
+                            <option value="">Asignar miembro del equipo</option>
+                            {usuarios.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+
+                <div className="form-group">
+                  <label>Enlace de Google Drive (Material / Video Crudo)</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="url"
+                      value={driveUrl}
+                      onChange={(e) => setDriveUrl(e.target.value)}
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      disabled={guardando || readOnly}
+                      style={{ flex: 1 }}
+                    />
+                    {driveUrl && (
+                      <button
+                        type="button"
+                        onClick={handleOpenDrive}
+                        className="btn btn-secondary"
+                        style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '12px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Abrir Drive
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Enlace De Publicacion Final</label>
+                  <input
+                    type="url"
+                    value={miniaturaUrl}
+                    onChange={(e) => setMiniaturaUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... o enlace de Drive"
+                    disabled={guardando || readOnly}
+                  />
+                  {miniaturaUrl && miniaturaUrl.startsWith('http') && (
+                    <div style={{ marginTop: '8px', border: '1px solid rgba(192, 132, 252, 0.25)', borderRadius: '8px', overflow: 'hidden', width: '130px', height: '73px', background: '#000000', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+                      <img
+                        src={miniaturaUrl}
+                        alt="Miniatura Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Notas de Producción</label>
+                  <textarea
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                    placeholder="Escribe comentarios, pautas del cliente o indicaciones para el editor..."
+                    rows={3}
+                    disabled={guardando || readOnly}
+                  />
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* Columna Derecha: Editor de Guion / Copy */}
+              <div className="form-column-right">
+                <div className="form-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <label>Guión / Texto del Post (Rich Editor)</label>
+
+                  {!readOnly && (
+                    <div className="rich-editor-toolbar">
+                      <button
+                        type="button"
+                        title="Negrita"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applyFormat('bold')}
+                        style={{ fontWeight: 'bold' }}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        title="Cursiva"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applyFormat('italic')}
+                        style={{ fontStyle: 'italic' }}
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        title="Subrayado"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applyFormat('underline')}
+                        style={{ textDecoration: 'underline' }}
+                      >
+                        U
+                      </button>
+                      <button
+                        type="button"
+                        title="Listas"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applyFormat('list')}
+                      >
+                        • List
+                      </button>
+                      <span style={{ flex: 1 }}></span>
+                      <span style={{ fontSize: '10px', color: '#9ca3af' }}>Edición Directa</span>
+                    </div>
+                  )}
+
+                  <div
+                    ref={editorRef}
+                    className="rich-editor-content"
+                    contentEditable={!guardando && !readOnly}
+                    suppressContentEditableWarning
+                    data-placeholder="Escribe el gancho, desarrollo y llamado a la acción..."
+                    onInput={(e) => setGuion(e.currentTarget.innerHTML)}
+                    onBlur={(e) => setGuion(e.currentTarget.innerHTML)}
+                    style={{
+                      flex: 1,
+                      minHeight: '220px',
+                      outline: readOnly ? 'none' : undefined,
+                      cursor: readOnly ? 'default' : 'text'
+                    }}
+                  />
+
+                  <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontFamily: 'Outfit, sans-serif' }}>
+                    {guion ? guion.replace(/<[^>]*>/g, '').length : 0} caracteres
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </form>
 
         <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>

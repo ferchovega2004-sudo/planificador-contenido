@@ -2308,6 +2308,45 @@ input[type="radio"]:checked::before {
   .kanban-mobile-action-btn:active {
     transform: scale(0.95);
   }
+
+  /* Pestañas del modal en móvil */
+  .modal-mobile-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 16px;
+    overflow-x: auto;
+    gap: 4px;
+    padding: 0 16px;
+    background-color: rgba(255, 255, 255, 0.01);
+  }
+
+  .modal-mobile-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    padding: 12px 8px;
+    border-bottom: 2.5px solid transparent;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .modal-mobile-tab-btn.active {
+    color: var(--neon-cyan) !important;
+    border-bottom-color: var(--neon-cyan) !important;
+  }
+
+  /* Ajustar tamaño del cuerpo editable del guion en celulares */
+  .rich-editor-content {
+    min-height: 250px !important;
+    max-height: 40vh !important;
+    overflow-y: auto !important;
+  }
 }
 
 /* Ocultar acciones rápidas de tarjetas en escritorio */
