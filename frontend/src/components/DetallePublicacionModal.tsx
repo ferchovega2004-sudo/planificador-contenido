@@ -271,6 +271,12 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
     }
   };
 
+  // Helper para abrir el enlace de la publicación final
+  const handleOpenFinalLink = () => {
+    if (!miniaturaUrl) return;
+    window.open(miniaturaUrl, '_blank');
+  };
+
   return (
     <div className="modal-backdrop">
       <div className="modal-content modal-large">
@@ -630,13 +636,26 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 
                   <div className="form-group">
                     <label>Enlace De Publicacion Final</label>
-                    <input
-                      type="url"
-                      value={miniaturaUrl}
-                      onChange={(e) => setMiniaturaUrl(e.target.value)}
-                      placeholder="Enlace del post finalizado"
-                      disabled={guardando || readOnly}
-                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="url"
+                        value={miniaturaUrl}
+                        onChange={(e) => setMiniaturaUrl(e.target.value)}
+                        placeholder="Enlace del post finalizado"
+                        disabled={guardando || readOnly}
+                        style={{ flex: 1 }}
+                      />
+                      {miniaturaUrl && (
+                        <button
+                          type="button"
+                          onClick={handleOpenFinalLink}
+                          className="btn btn-secondary"
+                          style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '11px' }}
+                        >
+                          Abrir
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -848,13 +867,31 @@ const DetallePublicacionModal: React.FC<DetallePublicacionModalProps> = ({
 
                 <div className="form-group">
                   <label>Enlace De Publicacion Final</label>
-                  <input
-                    type="url"
-                    value={miniaturaUrl}
-                    onChange={(e) => setMiniaturaUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/... o enlace de Drive"
-                    disabled={guardando || readOnly}
-                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="url"
+                      value={miniaturaUrl}
+                      onChange={(e) => setMiniaturaUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/... o enlace de Drive"
+                      disabled={guardando || readOnly}
+                      style={{ flex: 1 }}
+                    />
+                    {miniaturaUrl && (
+                      <button
+                        type="button"
+                        onClick={handleOpenFinalLink}
+                        className="btn btn-secondary"
+                        style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '12px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Abrir Enlace
+                      </button>
+                    )}
+                  </div>
                   {miniaturaUrl && miniaturaUrl.startsWith('http') && (
                     <div style={{ marginTop: '8px', border: '1px solid rgba(192, 132, 252, 0.25)', borderRadius: '8px', overflow: 'hidden', width: '130px', height: '73px', background: '#000000', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
                       <img
